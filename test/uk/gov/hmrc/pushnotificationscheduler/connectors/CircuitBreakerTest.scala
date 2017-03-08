@@ -14,28 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pushnotificationscheduler.controllers
+package uk.gov.hmrc.pushnotificationscheduler.connectors
 
-import play.api.http.Status
-import play.api.test.FakeRequest
-import play.api.http.Status
-import play.api.test.FakeRequest
+import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.play.test.WithFakeApplication
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
+import scala.concurrent.Future
 
-class MicroserviceHelloWorldControllerSpec extends UnitSpec with WithFakeApplication{
+trait CircuitBreakerTest {
 
-  val fakeRequest = FakeRequest("GET", "/")
+  self: UnitSpec with ScalaFutures  =>
 
-
-  "GET /" should {
-    "return 200" in {
-      val result = MicroserviceHelloWorld.hello()(fakeRequest)
-      status(result) shouldBe Status.OK
+  def shouldTriggerCircuitBreaker(after: Int, func: => Future[Any]): Unit = {
+    1 to after foreach { _ =>
+      func.failed.futureValue shouldBe an[uk.gov.hmrc.play.http.Upstream5xxResponse]
     }
+    func.failed.futureValue shouldBe an[uk.gov.hmrc.circuitbreaker.UnhealthyServiceException]
   }
-
-
 }
