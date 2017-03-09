@@ -16,66 +16,34 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
-import play.api.libs.json.Writes
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.pushnotificationscheduler.config.ServicesCircuitBreaker
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
 import scala.concurrent.{ExecutionContext, Future}
 
-sealed trait Response {
-  def status: Int
-}
-case class Success(status:Int) extends Response
-case class Error(status:Int) extends Response
-
-trait PushRegistrationConnector {
+trait PushRegistrationConnector extends GenericConnector {
   this: ServicesCircuitBreaker =>
 
-  val defaultBatchSize = 10
-
-  val externalServiceName = "push-registration"
-
-  def http: HttpGet with HttpPost with HttpDelete
-
-  def serviceUrl: String
-
-  def url(path: String) = s"$serviceUrl$path"
+  override val externalServiceName: String = "push-registration"
 
   def getUnregisteredTokens(maxBatchSize: Int = defaultBatchSize)(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
-    doGet(List(("maxBatchSize", maxBatchSize.toString)))
+    get[Seq[RegistrationToken]]("/registrations", List(("maxBatchSize", maxBatchSize.toString)))
   }
 
   def recoverFailedRegistrations(maxBatchSize: Int = defaultBatchSize)(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
-    doGet(List(("mode", "recover"), ("maxBatchSize", maxBatchSize.toString)))
+    get[Seq[RegistrationToken]]("/registrations", List(("mode", "recover"), ("maxBatchSize", maxBatchSize.toString)))
   }
 
   def registerTokens(tokenToArnMap: Map[String,String])(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Response] = {
-    doPost[Map[String, String]]("/registrations", tokenToArnMap)
+    post[Map[String, String]]("/registrations", tokenToArnMap)
   }
 
   def removeDisabledTokens(tokens: Seq[RegistrationToken])(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Response] = {
-    doPost[Seq[RegistrationToken]]("/registrations/delete", tokens)
+    post[Seq[RegistrationToken]]("/registrations/delete", tokens)
   }
 
   def removeDisabledEndpointArns(endpointArns: Seq[String])(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Response] = {
-    doPost[Seq[String]]("/registrations/delete", endpointArns)
-  }
-
-  private def doGet(params: List[(String, String)])(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext) = {
-    withCircuitBreaker(
-      http.GET[Seq[RegistrationToken]](url("/registrations"), params)
-    )
-  }
-
-  private def doPost[T](resource: String, allTheThings: T)(implicit w: Writes[T], headerCarrier: HeaderCarrier, ex: ExecutionContext) = {
-    withCircuitBreaker(
-      http.POST[T, HttpResponse](url(resource), allTheThings, Seq.empty).map(response => {
-        response.status match {
-          case status if status >= 200 && status < 300 => Success(status)
-          case _ => Error(response.status)
-        }
-      })
-    )
+    post[Seq[String]]("/registrations/delete", endpointArns)
   }
 }
