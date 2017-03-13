@@ -33,6 +33,8 @@ case class Error(status: Int) extends Response
 trait GenericConnector {
   this: ServicesCircuitBreaker =>
 
+  implicit lazy val hc = HeaderCarrier()
+
   val defaultBatchSize = 10
 
   val externalServiceName = "some-service"
@@ -43,19 +45,19 @@ trait GenericConnector {
 
   def url(path: String) = s"$serviceUrl$path"
 
-  def get[T](resource: String, params: List[(String, String)])(implicit r: HttpReads[T], headerCarrier: HeaderCarrier, ex: ExecutionContext) = {
+  def get[T](resource: String, params: List[(String, String)])(implicit r: HttpReads[T], ex: ExecutionContext) = {
     withCircuitBreaker(
       http.GET[T](url(resource), params)
     )
   }
 
-  def submit[T, U](resource: String, data: T)(implicit r: HttpReads[U], w: Writes[T], headerCarrier: HeaderCarrier, ex: ExecutionContext) = {
+  def submit[T, U](resource: String, data: T)(implicit r: HttpReads[U], w: Writes[T], ex: ExecutionContext) = {
     withCircuitBreaker(
       http.POST[T, U](url(resource), data, Seq.empty)
     )
   }
 
-  def post[T](resource: String, data: T)(implicit w: Writes[T], headerCarrier: HeaderCarrier, ex: ExecutionContext) = {
+  def post[T](resource: String, data: T)(implicit w: Writes[T], ex: ExecutionContext) = {
     submit[T, HttpResponse](resource, data).map(response => {
       response.status match {
         case status if status >= 200 && status < 300 => Success(status)

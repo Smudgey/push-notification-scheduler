@@ -38,9 +38,8 @@ import scala.concurrent.Future.{failed, successful}
 class SnsClientConnectorSpec extends UnitSpec with WithFakeApplication with ServicesConfig with ScalaFutures with CircuitBreakerTest {
 
   private trait Setup extends MockitoSugar {
-    implicit lazy val hc = HeaderCarrier()
-
     val mockHttp: WSHttp = mock[WSHttp]
+
     val connector = new SnsClientConnector with ServicesConfig with ServicesCircuitBreaker {
       override def http: WSHttp = mockHttp
 

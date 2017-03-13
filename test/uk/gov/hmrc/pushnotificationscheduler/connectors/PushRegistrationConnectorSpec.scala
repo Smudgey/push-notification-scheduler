@@ -37,9 +37,8 @@ import scala.concurrent.Future.{failed, successful}
 class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication with ServicesConfig with ScalaFutures with CircuitBreakerTest {
 
   private trait Setup extends MockitoSugar {
-    implicit lazy val hc = HeaderCarrier()
-
     val mockHttp: WSHttp = mock[WSHttp]
+
     val connector = new PushRegistrationConnector with ServicesConfig with ServicesCircuitBreaker {
       override def http: WSHttp = mockHttp
 
@@ -126,26 +125,26 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication wi
     }
   }
 
-  "registerTokens" should {
+  "registerEndpoints" should {
     "succeed when a 200 response is received" in new Setup {
-      val result: Response = await(connector.registerTokens(tokenToArns))
+      val result: Response = await(connector.registerEndpoints(tokenToArns))
       result.status shouldBe 200
     }
 
     "throw BadRequestException when a 400 response is returned" in new Setup {
       intercept[BadRequestException] {
-        await(connector.registerTokens(badTokenToArnMap))
+        await(connector.registerEndpoints(badTokenToArnMap))
       }
     }
     "throw Upstream5xxResponse when a 500 response is returned" in new Setup {
       intercept[Upstream5xxResponse] {
-        await(connector.registerTokens(breakingTokenToArnMap))
+        await(connector.registerEndpoints(breakingTokenToArnMap))
       }
     }
 
     "circuit breaker configuration should be applied and unhealthy service exception will kick in after 5th failed call" in new Setup {
       shouldTriggerCircuitBreaker(after = 5,
-        connector.registerTokens(breakingTokenToArnMap)
+        connector.registerEndpoints(breakingTokenToArnMap)
       )
     }
   }
@@ -176,24 +175,24 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication wi
 
   "removeDisabledEndpointArns" should {
     "succeed when a 200 response is received" in new Setup {
-      val result: Response = await(connector.removeDisabledEndpointArns(tokenToArns.values.toList))
+      val result: Response = await(connector.removeDisabledEndpoints(tokenToArns.values.toList))
       result.status shouldBe 200
     }
 
     "throw BadRequestException when a 400 response is returned" in new Setup {
       intercept[BadRequestException] {
-        await(connector.removeDisabledEndpointArns(badTokenToArnMap.values.toList))
+        await(connector.removeDisabledEndpoints(badTokenToArnMap.values.toList))
       }
     }
     "throw Upstream5xxResponse when a 500 response is returned" in new Setup {
       intercept[Upstream5xxResponse] {
-        await(connector.removeDisabledEndpointArns(breakingTokenToArnMap.values.toList))
+        await(connector.removeDisabledEndpoints(breakingTokenToArnMap.values.toList))
       }
     }
 
     "circuit breaker configuration should be applied and unhealthy service exception will kick in after 5th failed call" in new Setup {
       shouldTriggerCircuitBreaker(after = 5,
-        connector.removeDisabledEndpointArns(breakingTokenToArnMap.values.toList)
+        connector.removeDisabledEndpoints(breakingTokenToArnMap.values.toList)
       )
     }
   }

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
-import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.pushnotificationscheduler.config.ServicesCircuitBreaker
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
@@ -27,23 +26,23 @@ trait PushRegistrationConnector extends GenericConnector {
 
   override val externalServiceName: String = "push-registration"
 
-  def getUnregisteredTokens(maxBatchSize: Int = defaultBatchSize)(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
+  def getUnregisteredTokens(maxBatchSize: Int = defaultBatchSize)(implicit ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
     get[Seq[RegistrationToken]]("/registrations", List(("maxBatchSize", maxBatchSize.toString)))
   }
 
-  def recoverFailedRegistrations(maxBatchSize: Int = defaultBatchSize)(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
+  def recoverFailedRegistrations(maxBatchSize: Int = defaultBatchSize)(implicit ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
     get[Seq[RegistrationToken]]("/registrations", List(("mode", "recover"), ("maxBatchSize", maxBatchSize.toString)))
   }
 
-  def registerTokens(tokenToArnMap: Map[String,String])(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Response] = {
+  def registerEndpoints(tokenToArnMap: Map[String,String])(implicit ex: ExecutionContext): Future[Response] = {
     post[Map[String, String]]("/registrations", tokenToArnMap)
   }
 
-  def removeDisabledTokens(tokens: Seq[RegistrationToken])(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Response] = {
+  def removeDisabledTokens(tokens: Seq[RegistrationToken])(implicit ex: ExecutionContext): Future[Response] = {
     post[Seq[RegistrationToken]]("/registrations/delete", tokens)
   }
 
-  def removeDisabledEndpointArns(endpointArns: Seq[String])(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Response] = {
+  def removeDisabledEndpoints(endpointArns: Seq[String])(implicit ex: ExecutionContext): Future[Response] = {
     post[Seq[String]]("/registrations/delete", endpointArns)
   }
 }

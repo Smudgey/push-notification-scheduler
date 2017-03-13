@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
 import play.api.libs.json._
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpReads}
+import uk.gov.hmrc.play.http.HttpReads
 import uk.gov.hmrc.pushnotificationscheduler.config.ServicesCircuitBreaker
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
@@ -36,7 +36,7 @@ trait SnsClientConnector extends GenericConnector {
     }
   }
 
-  def exchangeTokens(tokens: Seq[RegistrationToken])(implicit r: HttpReads[Map[String,String]], headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Map[String,Option[String]]] = {
+  def exchangeTokens(tokens: Seq[RegistrationToken])(implicit r: HttpReads[Map[String,String]], ex: ExecutionContext): Future[Map[String,Option[String]]] = {
     submit[Seq[RegistrationToken], Map[String,Option[String]]]("/registrations", tokens)
   }
 }
