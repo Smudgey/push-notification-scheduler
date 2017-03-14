@@ -20,6 +20,7 @@ import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
 import play.api.Logger
+import uk.gov.hmrc.play.http.HttpException
 import uk.gov.hmrc.pushnotificationscheduler.connectors.{PushRegistrationConnector, Response, Success}
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
@@ -31,9 +32,8 @@ trait PushRegistrationServiceApi {
 
   def getUnregisteredTokens: Future[Seq[RegistrationToken]]
   def recoverFailedRegistrations: Future[Seq[RegistrationToken]]
-  def registerEndpoints(tokenToEndpointMap: Map[String,String]): Future[Boolean]
-  def removeDisabledTokens(tokens: Seq[RegistrationToken]): Future[Boolean]
-  def removeDisabledEndpoints(endpoints: Seq[String]): Future[Boolean]
+  def registerEndpoints(tokenToEndpointMap: Map[String,Option[String]]): Future[_]
+  def removeDisabledEndpoints(endpoints: Seq[String]): Future[_]
 }
 
 @Singleton
@@ -46,15 +46,11 @@ class PushRegistrationService @Inject() (connector: PushRegistrationConnector) e
     getTokens(connector.recoverFailedRegistrations(), logFailureAs = "Failed to recover failed tokens")
   }
 
-  override def registerEndpoints(tokenToEndpointMap: Map[String, String]): Future[Boolean] = {
+  override def registerEndpoints(tokenToEndpointMap: Map[String, Option[String]]): Future[_] = {
     processRequest(connector.registerEndpoints(tokenToEndpointMap), "register endpoints")
   }
 
-  override def removeDisabledTokens(tokens: Seq[RegistrationToken]): Future[Boolean] = {
-    processRequest(connector.removeDisabledTokens(tokens), "remove disabled tokens")
-  }
-
-  override def removeDisabledEndpoints(endpoints: Seq[String]): Future[Boolean] = {
+  override def removeDisabledEndpoints(endpoints: Seq[String]): Future[_] = {
     processRequest(connector.removeDisabledEndpoints(endpoints), "remove disabled endpoints")
   }
 
@@ -66,18 +62,18 @@ class PushRegistrationService @Inject() (connector: PushRegistrationConnector) e
     }
   }
 
-  private def processRequest(func: => Future[Response], logFailureAs: String = "process request"): Future[Boolean] = {
+  private def processRequest(func: => Future[Response], logFailureAs: String = "process request"): Future[_] = {
     func.map{ r: Response =>
       if (r.isInstanceOf[Success]) {
-        true
+        Future.successful(Unit)
       } else {
         Logger.error(s"Failed to $logFailureAs, status = ${r.status}")
-        false
+        Future.failed(new HttpException(s"Failed to $logFailureAs", r.status))
       }
     }.recover {
       case e: Throwable =>
         Logger.error(s"Failed to $logFailureAs: ${e.getMessage}")
-        false
+        Future.failed(e)
     }
   }
 }

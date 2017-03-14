@@ -34,15 +34,11 @@ trait PushRegistrationConnector extends GenericConnector {
     get[Seq[RegistrationToken]]("/registrations", List(("mode", "recover"), ("maxBatchSize", maxBatchSize.toString)))
   }
 
-  def registerEndpoints(tokenToArnMap: Map[String,String])(implicit ex: ExecutionContext): Future[Response] = {
-    post[Map[String, String]]("/registrations", tokenToArnMap)
+  def registerEndpoints(tokenToEndpointMap: Map[String,Option[String]])(implicit ex: ExecutionContext): Future[Response] = {
+    post[Map[String, Option[String]]]("/registrations", tokenToEndpointMap)
   }
 
-  def removeDisabledTokens(tokens: Seq[RegistrationToken])(implicit ex: ExecutionContext): Future[Response] = {
-    post[Seq[RegistrationToken]]("/registrations/delete", tokens)
-  }
-
-  def removeDisabledEndpoints(endpointArns: Seq[String])(implicit ex: ExecutionContext): Future[Response] = {
-    post[Seq[String]]("/registrations/delete", endpointArns)
+  def removeDisabledEndpoints(endpoints: Seq[String])(implicit ex: ExecutionContext): Future[Response] = {
+    post[Seq[String]]("/registrations/delete", endpoints)
   }
 }
