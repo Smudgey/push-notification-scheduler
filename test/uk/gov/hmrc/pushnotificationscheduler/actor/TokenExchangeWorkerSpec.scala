@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.actor
 
-import java.util.concurrent.TimeUnit.HOURS
+import java.util.concurrent.TimeUnit.MINUTES
 
 import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
@@ -39,6 +39,7 @@ import scala.concurrent.Future
 
 class TokenExchangeWorkerSpec extends UnitSpec with MockitoSugar {
   type Work = Seq[RegistrationToken]
+
   val mockMetrics = mock[Metrics]
   val mockSnsClient = mock[SnsClientService]
   val mockPushRegistration = mock[PushRegistrationService]
@@ -46,7 +47,7 @@ class TokenExchangeWorkerSpec extends UnitSpec with MockitoSugar {
 
   private abstract class Setup extends TestKit(ActorSystem("AkkaTestSystem")) {
 
-    implicit val timeout = Timeout(1, HOURS)
+    implicit val timeout = Timeout(1, MINUTES)
 
     val master = system.actorOf(Props[Master[Work]], "master")
     val worker = system.actorOf(TokenExchangeWorker.props(master, mockSnsClient, mockPushRegistration, mockMetrics))
