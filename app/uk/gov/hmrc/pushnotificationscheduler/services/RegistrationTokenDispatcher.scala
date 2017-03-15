@@ -17,11 +17,12 @@
 package uk.gov.hmrc.pushnotificationscheduler.services
 
 import java.util.concurrent.TimeUnit.HOURS
+import javax.inject.{Inject, Singleton}
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import uk.gov.hmrc.play.config.RunMode
+import com.google.inject.ImplementedBy
 import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.{Epic, RegisterWorker}
 import uk.gov.hmrc.pushnotificationscheduler.actor.{Master, TokenExchangeWorker}
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
@@ -30,13 +31,16 @@ import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait RegistrationTokenDispatcher extends RunMode {
-  implicit val timeout = Timeout(1, HOURS)
+@ImplementedBy(classOf[RegistrationTokenDispatcher])
+trait RegistrationTokenDispatcherApi {
+  def exchangeRegistrationTokensForEndpoints(): Future[Unit]
 
-  def snsClientService: SnsClientService
-  def pushRegistrationService: PushRegistrationService
-  def system: ActorSystem
-  def metrics: Metrics
+  def isRunning: Future[Boolean]
+}
+
+@Singleton
+class RegistrationTokenDispatcher @Inject() (snsClientService: SnsClientService, pushRegistrationService: PushRegistrationService, system: ActorSystem, metrics: Metrics) extends RegistrationTokenDispatcherApi {
+  implicit val timeout = Timeout(1, HOURS)
 
   lazy val gangMaster: ActorRef = system.actorOf(Props[Master[Seq[RegistrationToken]]])
 
@@ -44,16 +48,16 @@ trait RegistrationTokenDispatcher extends RunMode {
   // val name = "registration-token-dispatcher"
   val registrationTokenDispatcherCount = 4
 
-  (1 until registrationTokenDispatcherCount).foreach{ _ =>
+  (1 until registrationTokenDispatcherCount).foreach { _ =>
     gangMaster ! RegisterWorker(system.actorOf(TokenExchangeWorker.props(gangMaster, snsClientService, pushRegistrationService, metrics)))
   }
 
   // TODO: decide how often failed registrations should be retried
-  def exchangeRegistrationTokensForEndpoints(): Future[Unit] = {
+  override def exchangeRegistrationTokensForEndpoints(): Future[Unit] = {
     for {
       unregisteredTokens: Seq[RegistrationToken] <- pushRegistrationService.getUnregisteredTokens
       recoveredTokens: Seq[RegistrationToken] <- pushRegistrationService.recoverFailedRegistrations
-      work <- Future.successful{
+      work <- Future.successful {
         if (unregisteredTokens.nonEmpty || recoveredTokens.nonEmpty)
           List(unregisteredTokens ++ recoveredTokens)
         else
@@ -63,5 +67,5 @@ trait RegistrationTokenDispatcher extends RunMode {
     } yield ()
   }
 
-  def isRunning: Future[Boolean] = Future.successful(false)
+  override def isRunning: Future[Boolean] = Future.successful(false)
 }
