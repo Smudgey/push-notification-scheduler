@@ -1,0 +1,67 @@
+/*
+ * Copyright 2017 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package uk.gov.hmrc.pushnotificationscheduler.services
+
+import java.util.concurrent.TimeUnit.HOURS
+
+import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.pattern.ask
+import akka.util.Timeout
+import uk.gov.hmrc.play.config.RunMode
+import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.{Epic, RegisterWorker}
+import uk.gov.hmrc.pushnotificationscheduler.actor.{Master, TokenExchangeWorker}
+import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
+import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+trait RegistrationTokenDispatcher extends RunMode {
+  implicit val timeout = Timeout(1, HOURS)
+
+  def snsClientService: SnsClientService
+  def pushRegistrationService: PushRegistrationService
+  def system: ActorSystem
+  def metrics: Metrics
+
+  lazy val gangMaster: ActorRef = system.actorOf(Props[Master[Seq[RegistrationToken]]])
+
+  // TODO: make configurable
+  // val name = "registration-token-dispatcher"
+  val registrationTokenDispatcherCount = 4
+
+  (1 until registrationTokenDispatcherCount).foreach{ _ =>
+    gangMaster ! RegisterWorker(system.actorOf(TokenExchangeWorker.props(gangMaster, snsClientService, pushRegistrationService, metrics)))
+  }
+
+  // TODO: decide how often failed registrations should be retried
+  def exchangeRegistrationTokensForEndpoints(): Future[Unit] = {
+    for {
+      unregisteredTokens: Seq[RegistrationToken] <- pushRegistrationService.getUnregisteredTokens
+      recoveredTokens: Seq[RegistrationToken] <- pushRegistrationService.recoverFailedRegistrations
+      work <- Future.successful{
+        if (unregisteredTokens.nonEmpty || recoveredTokens.nonEmpty)
+          List(unregisteredTokens ++ recoveredTokens)
+        else
+          List.empty
+      }
+      _ <- gangMaster ? Epic[Seq[RegistrationToken]](work)
+    } yield ()
+  }
+
+  def isRunning: Future[Boolean] = Future.successful(false)
+}
