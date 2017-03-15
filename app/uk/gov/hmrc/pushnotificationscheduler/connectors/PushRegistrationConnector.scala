@@ -16,12 +16,18 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
+import javax.inject.{Inject, Singleton}
+
+import com.google.inject.ImplementedBy
+import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.http.{HttpDelete, HttpGet, HttpPost}
 import uk.gov.hmrc.pushnotificationscheduler.config.ServicesCircuitBreaker
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait PushRegistrationConnector extends GenericConnector {
+@ImplementedBy(classOf[PushRegistrationConnector])
+trait PushRegistrationConnectorApi extends GenericConnector with ServicesConfig with ServicesCircuitBreaker {
   this: ServicesCircuitBreaker =>
 
   override val externalServiceName: String = "push-registration"
@@ -42,3 +48,6 @@ trait PushRegistrationConnector extends GenericConnector {
     post[Seq[String]]("/registrations/delete", endpoints)
   }
 }
+
+@Singleton
+class PushRegistrationConnector @Inject() (val serviceUrl: String, val http: HttpGet with HttpPost with HttpDelete) extends PushRegistrationConnectorApi with ServicesConfig with ServicesCircuitBreaker

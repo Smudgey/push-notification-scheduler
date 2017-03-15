@@ -39,9 +39,9 @@ trait GenericConnector {
 
   val externalServiceName = "some-service"
 
-  def http: HttpGet with HttpPost with HttpDelete
+  val http: HttpGet with HttpPost with HttpDelete
 
-  def serviceUrl: String
+  val serviceUrl: String
 
   def url(path: String) = s"$serviceUrl$path"
 

@@ -20,7 +20,7 @@ import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
 import play.api.Logger
-import uk.gov.hmrc.pushnotificationscheduler.connectors.SnsClientConnector
+import uk.gov.hmrc.pushnotificationscheduler.connectors.SnsClientConnectorApi
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,7 +33,7 @@ trait SnsClientServiceApi {
 }
 
 @Singleton
-class SnsClientService @Inject() (connector: SnsClientConnector) extends SnsClientServiceApi {
+class SnsClientService @Inject() (connector: SnsClientConnectorApi) extends SnsClientServiceApi {
   override def exchangeTokens(tokens: Seq[RegistrationToken]): Future[Map[String, Option[String]]] = {
     connector.exchangeTokens(tokens).recover{
       case e: Throwable =>

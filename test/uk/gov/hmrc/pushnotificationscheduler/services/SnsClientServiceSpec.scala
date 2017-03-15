@@ -23,7 +23,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import uk.gov.hmrc.play.http.{HttpReads, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.pushnotificationscheduler.connectors.SnsClientConnector
+import uk.gov.hmrc.pushnotificationscheduler.connectors.SnsClientConnectorApi
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows}
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class SnsClientServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures {
   private trait Setup extends MockitoSugar {
-    val connector = mock[SnsClientConnector]
+    val connector = mock[SnsClientConnectorApi]
 
     val service = new SnsClientService(connector)
 

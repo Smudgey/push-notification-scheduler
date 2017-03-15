@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
-import org.mockito.{ArgumentMatcher, ArgumentMatchers}
 import org.mockito.ArgumentMatchers.{any, argThat, matches}
 import org.mockito.Mockito.doReturn
+import org.mockito.{ArgumentMatcher, ArgumentMatchers}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Writes
@@ -26,7 +26,6 @@ import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.ws.WSHttp
 import uk.gov.hmrc.play.http.{BadRequestException, _}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
-import uk.gov.hmrc.pushnotificationscheduler.config.ServicesCircuitBreaker
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows, iOS}
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
@@ -39,11 +38,7 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication wi
   private trait Setup extends MockitoSugar {
     val mockHttp: WSHttp = mock[WSHttp]
 
-    val connector = new PushRegistrationConnector with ServicesConfig with ServicesCircuitBreaker {
-      override def http: WSHttp = mockHttp
-
-      override def serviceUrl: String = "/some/end/point"
-    }
+    val connector = new PushRegistrationConnector("/some/end/point", mockHttp)
 
     val unregisteredTokens = List(RegistrationToken("foo", Android), RegistrationToken("bar", iOS))
     val previouslyFailedTokens = List(RegistrationToken("quux", Windows))

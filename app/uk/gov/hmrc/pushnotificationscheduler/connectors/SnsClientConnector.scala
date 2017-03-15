@@ -16,14 +16,19 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
+import javax.inject.{Inject, Singleton}
+
+import com.google.inject.ImplementedBy
 import play.api.libs.json._
-import uk.gov.hmrc.play.http.HttpReads
+import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.http.{HttpDelete, HttpGet, HttpPost, HttpReads}
 import uk.gov.hmrc.pushnotificationscheduler.config.ServicesCircuitBreaker
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait SnsClientConnector extends GenericConnector {
+@ImplementedBy(classOf[SnsClientConnector])
+trait SnsClientConnectorApi extends GenericConnector with ServicesConfig with ServicesCircuitBreaker {
   this: ServicesCircuitBreaker =>
 
   override val externalServiceName: String = "sns-client"
@@ -40,3 +45,6 @@ trait SnsClientConnector extends GenericConnector {
     submit[Seq[RegistrationToken], Map[String,Option[String]]]("/registrations", tokens)
   }
 }
+
+@Singleton
+class SnsClientConnector @Inject() (val serviceUrl: String, val http: HttpGet with HttpPost with HttpDelete) extends SnsClientConnectorApi with ServicesConfig with ServicesCircuitBreaker
