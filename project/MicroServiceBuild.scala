@@ -31,7 +31,8 @@ object MicroServiceBuild extends Build with MicroService {
     "org.pegdown" % "pegdown" % "1.6.0" % scope,
     "org.mockito" % "mockito-core" % "2.7.14" % scope,
     "com.typesafe.akka" %% "akka-testkit" % "2.3.14" % scope,
-    "com.typesafe.play" %% "play-test" % PlayVersion.current % scope
+    "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+    "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % scope
   )
 
 }
