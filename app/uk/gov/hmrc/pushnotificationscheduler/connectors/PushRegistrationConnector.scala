@@ -33,19 +33,19 @@ trait PushRegistrationConnectorApi extends GenericConnector with ServicesConfig 
   override val externalServiceName: String = "push-registration"
 
   def getUnregisteredTokens(maxBatchSize: Int = defaultBatchSize)(implicit ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
-    get[Seq[RegistrationToken]]("/registrations", List(("maxBatchSize", maxBatchSize.toString)))
+    get[Seq[RegistrationToken]]("/push/registration", List(("maxBatchSize", maxBatchSize.toString)))
   }
 
   def recoverFailedRegistrations(maxBatchSize: Int = defaultBatchSize)(implicit ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
-    get[Seq[RegistrationToken]]("/registrations", List(("mode", "recover"), ("maxBatchSize", maxBatchSize.toString)))
+    get[Seq[RegistrationToken]]("/push/registration", List(("mode", "recover"), ("maxBatchSize", maxBatchSize.toString)))
   }
 
   def registerEndpoints(tokenToEndpointMap: Map[String,Option[String]])(implicit ex: ExecutionContext): Future[Response] = {
-    post[Map[String, Option[String]]]("/registrations", tokenToEndpointMap)
+    post[Map[String, Option[String]]]("/push/registration", tokenToEndpointMap)
   }
 
   def removeDisabledEndpoints(endpoints: Seq[String])(implicit ex: ExecutionContext): Future[Response] = {
-    post[Seq[String]]("/registrations/delete", endpoints)
+    post[Seq[String]]("/push/registration/delete", endpoints)
   }
 }
 

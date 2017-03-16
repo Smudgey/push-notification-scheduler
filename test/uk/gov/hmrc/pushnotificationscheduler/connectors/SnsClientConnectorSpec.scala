@@ -39,15 +39,15 @@ class SnsClientConnectorSpec extends UnitSpec with WithFakeApplication with Serv
   private trait Setup extends MockitoSugar {
     val mockHttp: WSHttp = mock[WSHttp]
 
-    val connector = new SnsClientConnector("/some/end/point", mockHttp)
+    val connector = new SnsClientConnector("http://otherserver:8765", mockHttp)
 
     val unregisteredTokens = List(RegistrationToken("foo", Android), RegistrationToken("bar", iOS))
     val badTokens = List(RegistrationToken("baz", Windows), RegistrationToken("quux", iOS))
     val breakingTokens = List(RegistrationToken("garply", Android))
 
-    doReturn(successful(unregisteredTokens.map(_.token -> UUID.randomUUID().toString).toMap), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/endpoints"), ArgumentMatchers.eq(unregisteredTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
-    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/endpoints"), ArgumentMatchers.eq(badTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
-    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/endpoints"), ArgumentMatchers.eq(breakingTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
+    doReturn(successful(unregisteredTokens.map(_.token -> UUID.randomUUID().toString).toMap), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(unregisteredTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
+    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(badTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
+    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(breakingTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
 
   }
 

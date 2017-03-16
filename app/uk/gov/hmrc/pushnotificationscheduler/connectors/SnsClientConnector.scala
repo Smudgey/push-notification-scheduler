@@ -42,7 +42,7 @@ trait SnsClientConnectorApi extends GenericConnector with ServicesConfig with Se
   }
 
   def exchangeTokens(tokens: Seq[RegistrationToken])(implicit r: HttpReads[Map[String,String]], ex: ExecutionContext): Future[Map[String,Option[String]]] = {
-    submit[Seq[RegistrationToken], Map[String,Option[String]]]("/endpoints", tokens)
+    submit[Seq[RegistrationToken], Map[String,Option[String]]]("/sns-client/endpoints", tokens)
   }
 }
 
