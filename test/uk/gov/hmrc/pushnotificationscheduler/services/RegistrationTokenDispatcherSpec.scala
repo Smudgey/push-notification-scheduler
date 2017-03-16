@@ -45,7 +45,7 @@ class RegistrationTokenDispatcherSpec extends UnitSpec with ScalaFutures with Mo
     val unregisteredTokens = List(RegistrationToken("foo", Android), RegistrationToken("bar", Windows), RegistrationToken("baz", iOS))
     val endpoints = Map("foo" -> Some("blip"), "bar" -> None, "baz" -> Some("blop"))
 
-    val dispatcher = new RegistrationTokenDispatcher(mockSnsClient, mockPushRegistration, system, mockMetrics)
+    val dispatcher = new RegistrationTokenDispatcher(4, mockSnsClient, mockPushRegistration, system, mockMetrics)
   }
 
   "scheduling the RegistrationToken dispatcher" should {

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.{Inject, Named, Singleton}
 
 import com.google.inject.ImplementedBy
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -50,4 +50,4 @@ trait PushRegistrationConnectorApi extends GenericConnector with ServicesConfig 
 }
 
 @Singleton
-class PushRegistrationConnector @Inject() (val serviceUrl: String, val http: HttpGet with HttpPost with HttpDelete) extends PushRegistrationConnectorApi with ServicesConfig with ServicesCircuitBreaker
+class PushRegistrationConnector @Inject()(@Named("pushRegistrationUrl") val serviceUrl: String, val http: HttpGet with HttpPost with HttpDelete) extends PushRegistrationConnectorApi with ServicesConfig with ServicesCircuitBreaker
