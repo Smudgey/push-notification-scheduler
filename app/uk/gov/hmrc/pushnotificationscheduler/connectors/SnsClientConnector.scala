@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.{Inject, Named, Singleton}
 
 import com.google.inject.ImplementedBy
 import play.api.libs.json._
@@ -42,9 +42,9 @@ trait SnsClientConnectorApi extends GenericConnector with ServicesConfig with Se
   }
 
   def exchangeTokens(tokens: Seq[RegistrationToken])(implicit r: HttpReads[Map[String,String]], ex: ExecutionContext): Future[Map[String,Option[String]]] = {
-    submit[Seq[RegistrationToken], Map[String,Option[String]]]("/registrations", tokens)
+    submit[Seq[RegistrationToken], Map[String,Option[String]]]("/endpoints", tokens)
   }
 }
 
 @Singleton
-class SnsClientConnector @Inject() (val serviceUrl: String, val http: HttpGet with HttpPost with HttpDelete) extends SnsClientConnectorApi with ServicesConfig with ServicesCircuitBreaker
+class SnsClientConnector @Inject() (@Named("snsClientUrl") val serviceUrl: String, val http: HttpGet with HttpPost with HttpDelete) extends SnsClientConnectorApi with ServicesConfig with ServicesCircuitBreaker
