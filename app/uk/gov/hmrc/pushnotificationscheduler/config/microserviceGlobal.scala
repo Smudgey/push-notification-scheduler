@@ -28,6 +28,7 @@ import net.ceedubs.ficus.Ficus._
 import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
 import play.api.i18n.Messages.Implicits._
 import play.api.Play.current
+import uk.gov.hmrc.pushnotificationscheduler.scheduled.JobScheduler
 
 
 object ControllerConfiguration extends ControllerConfig {
@@ -53,7 +54,7 @@ object MicroserviceAuthFilter extends AuthorisationFilter with MicroserviceFilte
   override def controllerNeedsAuth(controllerName: String): Boolean = ControllerConfiguration.paramsForController(controllerName).needsAuth
 }
 
-object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with MicroserviceFilterSupport {
+object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override val auditConnector = MicroserviceAuditConnector
 
   override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
@@ -63,4 +64,18 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Mi
   override val microserviceAuditFilter = MicroserviceAuditFilter
 
   override val authFilter = Some(MicroserviceAuthFilter)
+
+  override def onStart(app: Application): Unit = {
+    super.onStart(app)
+
+    val scheduler = app.injector.instanceOf(classOf[JobScheduler])
+    scheduler.onStart(app)
+  }
+
+  override def onStop(app: Application): Unit = {
+    super.onStop(app)
+
+    val scheduler = app.injector.instanceOf(classOf[JobScheduler])
+    scheduler.onStop(app)
+  }
 }

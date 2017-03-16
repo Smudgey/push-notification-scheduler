@@ -16,10 +16,13 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.metrics
 
+import javax.inject.Singleton
 import com.codahale.metrics.MetricRegistry
+import com.google.inject.ImplementedBy
 import uk.gov.hmrc.play.graphite.MicroserviceMetrics
 
-trait Metrics {
+@ImplementedBy(classOf[Metrics])
+trait MetricsApi {
   def registry: com.codahale.metrics.MetricRegistry
 
   def incrementTokenExchangeSuccess(n: Long)
@@ -27,8 +30,9 @@ trait Metrics {
   def incrementTokenDisabled(n: Long)
 }
 
-object Metrics extends Metrics with MicroserviceMetrics {
-  val registry: MetricRegistry = metrics.defaultRegistry
+@Singleton
+class Metrics extends MetricsApi with MicroserviceMetrics {
+  lazy val registry: MetricRegistry = metrics.defaultRegistry
 
   val scheduler = "push-notification-scheduler"
   val successful = s"$scheduler.successful"

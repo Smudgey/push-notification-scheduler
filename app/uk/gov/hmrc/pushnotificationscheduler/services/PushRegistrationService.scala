@@ -21,7 +21,7 @@ import javax.inject.{Inject, Singleton}
 import com.google.inject.ImplementedBy
 import play.api.Logger
 import uk.gov.hmrc.play.http.HttpException
-import uk.gov.hmrc.pushnotificationscheduler.connectors.{PushRegistrationConnector, Response, Success}
+import uk.gov.hmrc.pushnotificationscheduler.connectors.{PushRegistrationConnectorApi, Response, Success}
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,7 +37,7 @@ trait PushRegistrationServiceApi {
 }
 
 @Singleton
-class PushRegistrationService @Inject() (connector: PushRegistrationConnector) extends PushRegistrationServiceApi {
+class PushRegistrationService @Inject() (connector: PushRegistrationConnectorApi) extends PushRegistrationServiceApi {
   override def getUnregisteredTokens: Future[Seq[RegistrationToken]] = {
     getTokens(connector.getUnregisteredTokens(), logFailureAs = "Failed to get unregistered tokens")
   }
