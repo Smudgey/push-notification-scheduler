@@ -136,46 +136,4 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
       }
     }
   }
-
-  "PushRegistrationService.removeDisabledEndpoints" should {
-
-    "return success when it has successfully removed disabled endpoints" in new Setup {
-      when(connector.removeDisabledEndpoints(any[Seq[String]])(any[ExecutionContext]())).thenReturn(Future.successful(Success(200)))
-
-      val result = await(service.removeDisabledEndpoints(expectedEndpoints))
-
-      val captor: ArgumentCaptor[Seq[String]] = ArgumentCaptor.forClass(classOf[Seq[String]])
-      verify(connector).removeDisabledEndpoints(captor.capture())(any[ExecutionContext]())
-
-      captor.getValue shouldBe expectedEndpoints
-
-      result.onComplete{
-        case Failure(_) => fail("should have succeeded")
-        case _ => // all good
-      }
-    }
-
-    "return failure when it can when it cannot removed disabled endpoints because of a problem with the remote service " in new Setup {
-      when(connector.removeDisabledEndpoints(any[Seq[String]])(any[ExecutionContext]())).thenReturn(Future.successful(Error(400)))
-
-      val result = await(service.removeDisabledEndpoints(expectedEndpoints))
-
-      result.onComplete{
-        case Failure(e) => e.getMessage should contain ("400")
-        case _ => fail("should not have succeeded")
-      }
-    }
-
-    "return failure when it cannot removed disabled endpoints because of a remote service failure" in new Setup {
-      when(connector.removeDisabledEndpoints(any[Seq[String]])(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
-
-      val result = await(service.removeDisabledEndpoints(expectedEndpoints))
-
-      result.onComplete{
-        case Failure(e) => e.getMessage should contain ("500")
-        case _ => fail("should not have succeeded")
-      }
-    }
-
-  }
 }

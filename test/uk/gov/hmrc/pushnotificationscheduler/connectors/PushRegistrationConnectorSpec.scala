@@ -57,17 +57,10 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication wi
     doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/registration"), argThat(containsTuple[String, String]("maxBatchSize", badRequest.toString)))(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
     doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/registration"), argThat(containsTuple[String, String]("maxBatchSize", upstreamFailure.toString)))(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
 
-    doReturn(successful(HttpResponse(200, None)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/registration"), argThat(containsKey[String, String]("snap")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
-    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/registration"), argThat(containsKey[String, String]("bad")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
-    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/registration"), argThat(containsKey[String, String]("broken")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+    doReturn(successful(HttpResponse(200, None)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("snap")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("bad")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("broken")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
 
-    doReturn(successful(HttpResponse(200, None)), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], HttpResponse](matches(s"${connector.serviceUrl}/push/registration/delete"), ArgumentMatchers.eq(unregisteredTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
-    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], HttpResponse](matches(s"${connector.serviceUrl}/push/registration/delete"), ArgumentMatchers.eq(previouslyFailedTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
-    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], HttpResponse](matches(s"${connector.serviceUrl}/push/registration/delete"), ArgumentMatchers.eq(invalidTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
-
-    doReturn(successful(HttpResponse(200, None)), Nil: _*).when(mockHttp).POST[Seq[String], HttpResponse](matches(s"${connector.serviceUrl}/push/registration/delete"), ArgumentMatchers.eq(tokenToArns.values.map(_.get).toList), any[Seq[(String, String)]])(any[Writes[Seq[String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
-    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Seq[String], HttpResponse](matches(s"${connector.serviceUrl}/push/registration/delete"), ArgumentMatchers.eq(badTokenToArnMap.values.map(_.get).toList), any[Seq[(String, String)]])(any[Writes[Seq[String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
-    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[String], HttpResponse](matches(s"${connector.serviceUrl}/push/registration/delete"), ArgumentMatchers.eq(breakingTokenToArnMap.values.map(_.get).toList), any[Seq[(String, String)]])(any[Writes[Seq[String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
   }
 
   "getUnregisteredTokens" should {
@@ -140,30 +133,6 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication wi
     "circuit breaker configuration should be applied and unhealthy service exception will kick in after 5th failed call" in new Setup {
       shouldTriggerCircuitBreaker(after = 5,
         connector.registerEndpoints(breakingTokenToArnMap)
-      )
-    }
-  }
-
-  "removeDisabledEndpointArns" should {
-    "succeed when a 200 response is received" in new Setup {
-      val result: Response = await(connector.removeDisabledEndpoints(tokenToArns.values.map(_.get).toList))
-      result.status shouldBe 200
-    }
-
-    "throw BadRequestException when a 400 response is returned" in new Setup {
-      intercept[BadRequestException] {
-        await(connector.removeDisabledEndpoints(badTokenToArnMap.values.map(_.get).toList))
-      }
-    }
-    "throw Upstream5xxResponse when a 500 response is returned" in new Setup {
-      intercept[Upstream5xxResponse] {
-        await(connector.removeDisabledEndpoints(breakingTokenToArnMap.values.map(_.get).toList))
-      }
-    }
-
-    "circuit breaker configuration should be applied and unhealthy service exception will kick in after 5th failed call" in new Setup {
-      shouldTriggerCircuitBreaker(after = 5,
-        connector.removeDisabledEndpoints(breakingTokenToArnMap.values.map(_.get).toList)
       )
     }
   }

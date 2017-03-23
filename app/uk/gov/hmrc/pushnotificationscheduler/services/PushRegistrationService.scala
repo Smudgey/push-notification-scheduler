@@ -33,7 +33,6 @@ trait PushRegistrationServiceApi {
   def getUnregisteredTokens: Future[Seq[RegistrationToken]]
   def recoverFailedRegistrations: Future[Seq[RegistrationToken]]
   def registerEndpoints(tokenToEndpointMap: Map[String,Option[String]]): Future[_]
-  def removeDisabledEndpoints(endpoints: Seq[String]): Future[_]
 }
 
 @Singleton
@@ -48,10 +47,6 @@ class PushRegistrationService @Inject() (connector: PushRegistrationConnectorApi
 
   override def registerEndpoints(tokenToEndpointMap: Map[String, Option[String]]): Future[_] = {
     processRequest(connector.registerEndpoints(tokenToEndpointMap), "register endpoints")
-  }
-
-  override def removeDisabledEndpoints(endpoints: Seq[String]): Future[_] = {
-    processRequest(connector.removeDisabledEndpoints(endpoints), "remove disabled endpoints")
   }
 
   private def getTokens(func: => Future[Seq[RegistrationToken]], logFailureAs: String = "Error") = {

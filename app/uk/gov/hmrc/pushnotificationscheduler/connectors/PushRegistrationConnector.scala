@@ -41,11 +41,7 @@ trait PushRegistrationConnectorApi extends GenericConnector with ServicesConfig 
   }
 
   def registerEndpoints(tokenToEndpointMap: Map[String,Option[String]])(implicit ex: ExecutionContext): Future[Response] = {
-    post[Map[String, Option[String]]]("/push/registration", tokenToEndpointMap)
-  }
-
-  def removeDisabledEndpoints(endpoints: Seq[String])(implicit ex: ExecutionContext): Future[Response] = {
-    post[Seq[String]]("/push/registration/delete", endpoints)
+    post[Map[String, Option[String]]]("/push/endpoint", tokenToEndpointMap)
   }
 }
 
