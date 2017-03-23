@@ -31,11 +31,22 @@ class JsonSerialisationSpec extends UnitSpec {
       s"successfully serialize RegistrationToken for OS range $item" in {
         val token = RegistrationToken(someToken, item.nativeOS)
 
-        Json.toJson(token) shouldBe Json.parse(s"""{"token":"$someToken","os":"${item.nativeOS}"}""")
+        Json.toJson(token) shouldBe Json.parse(s"""{"token":"$someToken","device":{"os":"${item.nativeOS}"}}""")
       }
 
       s"successfully deserialize Device for OS range $item" in {
-        val tokenJson = s"""{"token":"$someToken","os":"${item.nativeOS}"}"""
+        val tokenJson =
+          s"""
+             |{
+             |  "token": "$someToken",
+             |  "device": {
+             |    "os": "${item.nativeOS}",
+             |    "osVersion": "1.0",
+             |    "appVersion": "1.0",
+             |    "model": "Foobar PLUS+"
+             |  }
+             |}
+             |""".stripMargin
 
         val actualToken = Json.parse(tokenJson).as[RegistrationToken]
         actualToken shouldBe RegistrationToken(someToken, item.nativeOS)
@@ -46,7 +57,7 @@ class JsonSerialisationSpec extends UnitSpec {
   "JSON deserialize " should {
 
     "fail to create RegistrationToken when OS is not recognised" in {
-      a[Exception] should be thrownBy Json.parse( s"""{"token":"token","os":"quux"}""").as[RegistrationToken]
+      a[Exception] should be thrownBy Json.parse( s"""{"token":"token","device":{"os":"quux"}}""").as[RegistrationToken]
     }
   }
 

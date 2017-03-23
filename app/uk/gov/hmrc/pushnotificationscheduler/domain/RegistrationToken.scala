@@ -16,10 +16,19 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.domain
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
 case class RegistrationToken(token: String, os: NativeOS)
 
 object RegistrationToken {
-  implicit val formats: Format[RegistrationToken] = Json.format[RegistrationToken]
+  implicit val tokenReads: Reads[RegistrationToken] = (
+    (JsPath \ "token").read[String] and
+      (JsPath \ "device" \ "os").read[NativeOS]
+    ) (RegistrationToken.apply _)
+
+  implicit val tokenWrites: Writes[RegistrationToken] = (
+    (JsPath \ "token").write[String] and
+      (JsPath \ "device" \ "os").write[NativeOS]
+    )(unlift(RegistrationToken.unapply))
 }
