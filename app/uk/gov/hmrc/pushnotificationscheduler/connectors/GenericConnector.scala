@@ -18,7 +18,6 @@ package uk.gov.hmrc.pushnotificationscheduler.connectors
 
 import play.api.libs.json.Writes
 import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.pushnotificationscheduler.config.ServicesCircuitBreaker
 
 import scala.concurrent.ExecutionContext
 
@@ -31,7 +30,6 @@ case class Success(status: Int) extends Response
 case class Error(status: Int) extends Response
 
 trait GenericConnector {
-  this: ServicesCircuitBreaker =>
 
   implicit lazy val hc = HeaderCarrier()
 
@@ -45,17 +43,12 @@ trait GenericConnector {
 
   def url(path: String) = s"$serviceUrl$path"
 
-  def get[T](resource: String, params: List[(String, String)])(implicit r: HttpReads[T], ex: ExecutionContext) = {
-    withCircuitBreaker(
-      http.GET[T](url(resource), params)
-    )
-  }
+  def get[T](resource: String, params: List[(String, String)])(implicit r: HttpReads[T], ex: ExecutionContext) =
+    http.GET[T](url(resource), params)
 
-  def submit[T, U](resource: String, data: T)(implicit r: HttpReads[U], w: Writes[T], ex: ExecutionContext) = {
-    withCircuitBreaker(
-      http.POST[T, U](url(resource), data, Seq.empty)
-    )
-  }
+
+  def submit[T, U](resource: String, data: T)(implicit r: HttpReads[U], w: Writes[T], ex: ExecutionContext) =
+    http.POST[T, U](url(resource), data, Seq.empty)
 
   def post[T](resource: String, data: T)(implicit w: Writes[T], ex: ExecutionContext) = {
     submit[T, HttpResponse](resource, data).map(response => {

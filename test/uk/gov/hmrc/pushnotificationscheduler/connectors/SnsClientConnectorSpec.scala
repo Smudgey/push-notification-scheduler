@@ -34,7 +34,7 @@ import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
-class SnsClientConnectorSpec extends UnitSpec with WithFakeApplication with ServicesConfig with ScalaFutures with CircuitBreakerTest {
+class SnsClientConnectorSpec extends UnitSpec with WithFakeApplication with ServicesConfig with ScalaFutures {
 
   private trait Setup extends MockitoSugar {
     val mockHttp: WSHttp = mock[WSHttp]
@@ -67,12 +67,6 @@ class SnsClientConnectorSpec extends UnitSpec with WithFakeApplication with Serv
       intercept[Upstream5xxResponse] {
         await(connector.exchangeTokens(breakingTokens))
       }
-    }
-
-    "circuit breaker configuration should be applied and unhealthy service exception will kick in after 5th failed call" in new Setup {
-      shouldTriggerCircuitBreaker(after = 5,
-        connector.exchangeTokens(breakingTokens)
-      )
     }
   }
 }

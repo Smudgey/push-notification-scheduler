@@ -28,8 +28,7 @@ import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[SnsClientConnector])
-trait SnsClientConnectorApi extends GenericConnector with ServicesConfig with ServicesCircuitBreaker {
-  this: ServicesCircuitBreaker =>
+trait SnsClientConnectorApi extends GenericConnector with ServicesConfig {
 
   override val externalServiceName: String = "sns-client"
 

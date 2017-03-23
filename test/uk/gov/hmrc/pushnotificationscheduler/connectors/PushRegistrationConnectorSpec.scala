@@ -33,7 +33,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
 
-class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication with ServicesConfig with ScalaFutures with CircuitBreakerTest {
+class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication with ServicesConfig with ScalaFutures {
 
   private trait Setup extends MockitoSugar {
     val mockHttp: WSHttp = mock[WSHttp]
@@ -80,12 +80,6 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication wi
         await(connector.getUnregisteredTokens(upstreamFailure))
       }
     }
-
-    "circuit breaker configuration should be applied and unhealthy service exception will kick in after 5th failed call" in new Setup {
-      shouldTriggerCircuitBreaker(after = 5,
-        connector.getUnregisteredTokens(upstreamFailure)
-      )
-    }
   }
 
   "recoverFailedRegistrations" should {
@@ -105,12 +99,6 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication wi
         await(connector.recoverFailedRegistrations(upstreamFailure))
       }
     }
-
-    "circuit breaker configuration should be applied and unhealthy service exception will kick in after 5th failed call" in new Setup {
-      shouldTriggerCircuitBreaker(after = 5,
-        connector.recoverFailedRegistrations(upstreamFailure)
-      )
-    }
   }
 
   "registerEndpoints" should {
@@ -128,12 +116,6 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithFakeApplication wi
       intercept[Upstream5xxResponse] {
         await(connector.registerEndpoints(breakingTokenToArnMap))
       }
-    }
-
-    "circuit breaker configuration should be applied and unhealthy service exception will kick in after 5th failed call" in new Setup {
-      shouldTriggerCircuitBreaker(after = 5,
-        connector.registerEndpoints(breakingTokenToArnMap)
-      )
     }
   }
 }
