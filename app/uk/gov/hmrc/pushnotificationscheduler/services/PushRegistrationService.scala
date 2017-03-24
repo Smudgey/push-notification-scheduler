@@ -38,26 +38,29 @@ trait PushRegistrationServiceApi {
 @Singleton
 class PushRegistrationService @Inject() (connector: PushRegistrationConnectorApi) extends PushRegistrationServiceApi {
   override def getUnregisteredTokens: Future[Seq[RegistrationToken]] = {
-    getTokens(connector.getUnregisteredTokens(), logFailureAs = "Failed to get unregistered tokens")
+    getTokens(connector.getUnregisteredTokens(), logAs = "unregistered")
   }
 
   override def recoverFailedRegistrations: Future[Seq[RegistrationToken]] = {
-    getTokens(connector.recoverFailedRegistrations(), logFailureAs = "Failed to recover failed tokens")
+    getTokens(connector.recoverFailedRegistrations(), logAs = "previously failed")
   }
 
   override def registerEndpoints(tokenToEndpointMap: Map[String, Option[String]]): Future[_] = {
     processRequest(connector.registerEndpoints(tokenToEndpointMap), "register endpoints")
   }
 
-  private def getTokens(func: => Future[Seq[RegistrationToken]], logFailureAs: String = "Error") = {
+  private def getTokens(func: => Future[Seq[RegistrationToken]], logAs: String) = {
     func recover {
+      case e: HttpException if e.responseCode == 404 =>
+        Logger.info(s"no $logAs tokens found")
+        Seq.empty
       case e: Throwable =>
-        Logger.error(s"$logFailureAs: ${e.getMessage}", e)
+        Logger.error(s"Failed to get $logAs tokens: ${e.getMessage}", e)
         Seq.empty
     }
   }
 
-  private def processRequest(func: => Future[Response], logFailureAs: String = "process request"): Future[_] = {
+  private def processRequest(func: => Future[Response], logFailureAs: String): Future[_] = {
     func.map{ r: Response =>
       if (r.isInstanceOf[Success]) {
         Future.successful(Unit)

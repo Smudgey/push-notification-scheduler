@@ -26,6 +26,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.connectors.{Error, PushRegistrationConnector, Success}
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows}
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
+import uk.gov.hmrc.play.http.HttpException
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -54,7 +55,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when no unregistered tokens are available" in new Setup {
-      when(connector.getUnregisteredTokens(anyInt())(any[ExecutionContext]())).thenReturn(Future.successful(Seq.empty))
+      when(connector.getUnregisteredTokens(anyInt())(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Move along!", 404)))
 
       val result = await(service.getUnregisteredTokens)
 
@@ -81,7 +82,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when no unregistered tokens are available" in new Setup {
-      when(connector.recoverFailedRegistrations(anyInt())(any[ExecutionContext]())).thenReturn(Future.successful(Seq.empty))
+      when(connector.recoverFailedRegistrations(anyInt())(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Move along!", 404)))
 
       val result = await(service.recoverFailedRegistrations)
 
