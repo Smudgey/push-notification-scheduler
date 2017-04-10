@@ -23,7 +23,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.{HttpDelete, HttpGet, HttpPost, HttpReads}
 import uk.gov.hmrc.pushnotificationscheduler.config.ServicesCircuitBreaker
-import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
+import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus, RegistrationToken}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -42,6 +42,10 @@ trait SnsClientConnectorApi extends GenericConnector with ServicesConfig {
 
   def exchangeTokens(tokens: Seq[RegistrationToken])(implicit r: HttpReads[Map[String,String]], ex: ExecutionContext): Future[Map[String,Option[String]]] = {
     submit[Seq[RegistrationToken], Map[String,Option[String]]]("/sns-client/endpoints", tokens)
+  }
+
+  def sendNotifications(notifications: Seq[Notification])(implicit r: HttpReads[Map[String,NotificationStatus]], ex: ExecutionContext): Future[Map[String,NotificationStatus]] = {
+    submit[Seq[Notification], Map[String,NotificationStatus]]("/sns-client/notifications", notifications)
   }
 }
 
