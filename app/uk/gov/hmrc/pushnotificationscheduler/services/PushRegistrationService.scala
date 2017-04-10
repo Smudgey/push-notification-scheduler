@@ -19,16 +19,15 @@ package uk.gov.hmrc.pushnotificationscheduler.services
 import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
-import play.api.Logger
-import uk.gov.hmrc.play.http.HttpException
-import uk.gov.hmrc.pushnotificationscheduler.connectors.{PushRegistrationConnectorApi, Response, Success}
+import uk.gov.hmrc.pushnotificationscheduler.connectors.PushRegistrationConnectorApi
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @ImplementedBy(classOf[PushRegistrationService])
-trait PushRegistrationServiceApi {
+trait PushRegistrationServiceApi extends EntityManager {
+  override val entities: String = "push registrations"
 
   def getUnregisteredTokens: Future[Seq[RegistrationToken]]
   def recoverFailedRegistrations: Future[Seq[RegistrationToken]]
@@ -38,40 +37,14 @@ trait PushRegistrationServiceApi {
 @Singleton
 class PushRegistrationService @Inject() (connector: PushRegistrationConnectorApi) extends PushRegistrationServiceApi {
   override def getUnregisteredTokens: Future[Seq[RegistrationToken]] = {
-    getTokens(connector.getUnregisteredTokens(), logAs = "unregistered")
+    fetch[RegistrationToken](connector.getUnregisteredTokens())
   }
 
   override def recoverFailedRegistrations: Future[Seq[RegistrationToken]] = {
-    getTokens(connector.recoverFailedRegistrations(), logAs = "previously failed")
+    fetch[RegistrationToken](connector.recoverFailedRegistrations())
   }
 
   override def registerEndpoints(tokenToEndpointMap: Map[String, Option[String]]): Future[_] = {
-    processRequest(connector.registerEndpoints(tokenToEndpointMap), "register endpoints")
-  }
-
-  private def getTokens(func: => Future[Seq[RegistrationToken]], logAs: String) = {
-    func recover {
-      case e: HttpException if e.responseCode == 404 =>
-        Logger.info(s"no $logAs tokens found")
-        Seq.empty
-      case e: Throwable =>
-        Logger.error(s"Failed to get $logAs tokens: ${e.getMessage}", e)
-        Seq.empty
-    }
-  }
-
-  private def processRequest(func: => Future[Response], logFailureAs: String): Future[_] = {
-    func.map{ r: Response =>
-      if (r.isInstanceOf[Success]) {
-        Future.successful(Unit)
-      } else {
-        Logger.error(s"Failed to $logFailureAs, status = ${r.status}")
-        Future.failed(new HttpException(s"Failed to $logFailureAs", r.status))
-      }
-    }.recover {
-      case e: Throwable =>
-        Logger.error(s"Failed to $logFailureAs: ${e.getMessage}")
-        Future.failed(e)
-    }
+    update(connector.registerEndpoints(tokenToEndpointMap))
   }
 }

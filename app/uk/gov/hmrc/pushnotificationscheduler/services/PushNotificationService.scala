@@ -19,16 +19,15 @@ package uk.gov.hmrc.pushnotificationscheduler.services
 import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
-import play.api.Logger
-import uk.gov.hmrc.play.http.HttpException
-import uk.gov.hmrc.pushnotificationscheduler.connectors.{PushNotificationConnectorApi, Response, Success}
+import uk.gov.hmrc.pushnotificationscheduler.connectors.PushNotificationConnectorApi
 import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 @ImplementedBy(classOf[PushNotificationService])
-trait PushNotificationServiceApi extends NotificationService {
+trait PushNotificationServiceApi extends EntityManager {
+  override val entities = "push notifications"
 
   def getUnsentNotifications: Future[Seq[Notification]]
   def updateNotifications(notificationStatus: Map[String,NotificationStatus]): Future[_]
@@ -42,29 +41,3 @@ class PushNotificationService @Inject() (connector: PushNotificationConnectorApi
     update(connector.updateNotifications(notificationStatus))
 }
 
-trait NotificationService {
-  def fetch[T](func: => Future[Seq[T]]) = {
-    func recover {
-      case e: HttpException if e.responseCode == 404 =>
-        Logger.info(s"no data found")
-        Seq.empty
-      case e: Throwable =>
-        Logger.error(s"Failed to fetch data: ${e.getMessage}", e)
-        Seq.empty
-    }
-  }
-
-  def update(func: => Future[Response]): Future[_] = {
-    func.map{ r: Response => r match {
-      case _: Success =>
-        Future.successful(Unit)
-      case _ =>
-        Logger.error(s"Update failed, status = ${r.status}")
-        Future.failed(new HttpException(s"Update failed", r.status))
-    }}.recover {
-      case e: Throwable =>
-        Logger.error(s"Update failed: ${e.getMessage}")
-        Future.failed(e)
-    }
-  }
-}
