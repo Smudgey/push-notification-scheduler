@@ -21,7 +21,7 @@ import javax.inject.{Inject, Singleton}
 import com.google.inject.ImplementedBy
 import play.api.Logger
 import uk.gov.hmrc.pushnotificationscheduler.connectors.SnsClientConnectorApi
-import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
+import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus, RegistrationToken}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -30,6 +30,7 @@ import scala.concurrent.Future
 trait SnsClientServiceApi {
 
   def exchangeTokens(tokens: Seq[RegistrationToken]): Future[Map[String,Option[String]]]
+  def sendNotifications(notifications: Seq[Notification]): Future[Map[String, NotificationStatus]]
 }
 
 @Singleton
@@ -38,6 +39,14 @@ class SnsClientService @Inject() (connector: SnsClientConnectorApi) extends SnsC
     connector.exchangeTokens(tokens).recover{
       case e: Throwable =>
         Logger.error(s"failed to exchange tokens: ${e.getMessage}", e)
+        Map.empty
+    }
+  }
+
+  override def sendNotifications(notifications: Seq[Notification]): Future[Map[String, NotificationStatus]] = {
+    connector.sendNotifications(notifications).recover{
+      case e: Throwable =>
+        Logger.error(s"failed to send notifications: ${e.getMessage}", e)
         Map.empty
     }
   }

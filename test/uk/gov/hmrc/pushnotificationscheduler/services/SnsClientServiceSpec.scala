@@ -25,7 +25,8 @@ import uk.gov.hmrc.play.http.{HttpReads, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.connectors.SnsClientConnectorApi
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows}
-import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
+import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.{Delivered, Disabled}
+import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus, RegistrationToken}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -36,12 +37,27 @@ class SnsClientServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures 
     val service = new SnsClientService(connector)
 
     val expectedTokens = List(RegistrationToken("foo", Android), RegistrationToken("bar", Windows))
-    val expectedMap = Map(expectedTokens map {t => (t.token, Option("/endpoint/" + t.token))} : _*)
+    val expectedTokenToEndpointMap = Map(expectedTokens map {t => (t.token, Option("/endpoint/" + t.token))} : _*)
+
+    val expectedNotifications = List(
+      Notification("msg-1", "end:point:a", "In an immense wood in the south of Kent,"),
+      Notification("msg-2", "end:point:b", "There lived a band of robbers which caused the people discontent;")
+    )
+    val expectedMessageIdToStatusMap = Map("msg-1" -> Delivered, "msg-2" -> Disabled)
   }
 
-  "SnsClientService.exchangeTokens" should {
-    "return a map of tokens to endpoints" in new Setup {
-      when(connector.exchangeTokens(any[Seq[RegistrationToken]])(any[HttpReads[Map[String,String]]](), any[ExecutionContext]())).thenReturn(Future.successful(expectedMap))
+  private trait Success extends Setup {
+    when(connector.exchangeTokens(any[Seq[RegistrationToken]])(any[HttpReads[Map[String,String]]](), any[ExecutionContext]())).thenReturn(Future.successful(expectedTokenToEndpointMap))
+    when(connector.sendNotifications(any[Seq[Notification]])(any[HttpReads[Map[String,NotificationStatus]]](), any[ExecutionContext]())).thenReturn(Future.successful(expectedMessageIdToStatusMap))
+  }
+
+  private trait Failed extends Setup {
+    when(connector.exchangeTokens(any[Seq[RegistrationToken]])(any[HttpReads[Map[String,String]]](), any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+    when(connector.sendNotifications(any[Seq[Notification]])(any[HttpReads[Map[String,NotificationStatus]]](), any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Crash!", 500, 500)))
+  }
+
+  "SnsClientService exchangeTokens" should {
+    "return a map of tokens to endpoints" in new Success {
 
       val result = await(service.exchangeTokens(expectedTokens))
 
@@ -49,13 +65,32 @@ class SnsClientServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures 
       verify(connector).exchangeTokens(captor.capture())(any[HttpReads[Map[String,String]]](), any[ExecutionContext]())
 
       captor.getValue shouldBe expectedTokens
-      result shouldBe expectedMap
+      result shouldBe expectedTokenToEndpointMap
     }
 
-    "return an empty map when there is a problem with the SNS client service" in new Setup {
-      when(connector.exchangeTokens(any[Seq[RegistrationToken]])(any[HttpReads[Map[String,String]]](), any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+    "return an empty map when there is a problem with the SNS client service" in new Failed {
 
       val result = await(service.exchangeTokens(expectedTokens))
+
+      result.size shouldBe 0
+    }
+  }
+
+  "SnsClientService sendNotifications" should {
+    "return a map of message identifiers to notification status" in new Success {
+
+      val result = await(service.sendNotifications(expectedNotifications))
+
+      val captor: ArgumentCaptor[Seq[Notification]] = ArgumentCaptor.forClass(classOf[Seq[Notification]])
+      verify(connector).sendNotifications(captor.capture())(any[HttpReads[Map[String,NotificationStatus]]](), any[ExecutionContext]())
+
+      captor.getValue shouldBe expectedNotifications
+      result shouldBe expectedMessageIdToStatusMap
+    }
+
+    "return an empty map when there is a problem with the SNS client service" in new Failed {
+
+      val result = await(service.sendNotifications(expectedNotifications))
 
       result.size shouldBe 0
     }
