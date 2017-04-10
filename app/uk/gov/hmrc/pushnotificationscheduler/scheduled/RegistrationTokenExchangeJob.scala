@@ -21,7 +21,7 @@ import javax.inject.{Inject, Named, Singleton}
 import com.google.inject.ImplementedBy
 import play.Logger
 import uk.gov.hmrc.play.scheduling.ScheduledJob
-import uk.gov.hmrc.pushnotificationscheduler.services.RegistrationTokenDispatcher
+import uk.gov.hmrc.pushnotificationscheduler.dispatchers.RegistrationTokenDispatcher
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}

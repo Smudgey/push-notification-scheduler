@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pushnotificationscheduler.services
+package uk.gov.hmrc.pushnotificationscheduler.dispatchers
 
 import java.util.concurrent.TimeUnit.HOURS
 import javax.inject.{Inject, Named, Singleton}
@@ -27,6 +27,7 @@ import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.{Epic, Reg
 import uk.gov.hmrc.pushnotificationscheduler.actor.{Master, TokenExchangeWorker}
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
+import uk.gov.hmrc.pushnotificationscheduler.services.{PushRegistrationService, SnsClientService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

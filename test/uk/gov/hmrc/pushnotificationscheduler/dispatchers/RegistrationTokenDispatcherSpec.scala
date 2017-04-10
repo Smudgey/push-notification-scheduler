@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pushnotificationscheduler.services
+package uk.gov.hmrc.pushnotificationscheduler.dispatchers
 
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
-import org.mockito.Mockito.{times, when}
+import org.mockito.Mockito.when
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
@@ -29,6 +29,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows, iOS}
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
+import uk.gov.hmrc.pushnotificationscheduler.services.{PushRegistrationService, SnsClientService}
 
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
