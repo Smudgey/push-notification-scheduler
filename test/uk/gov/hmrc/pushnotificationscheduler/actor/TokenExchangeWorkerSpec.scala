@@ -67,9 +67,7 @@ class TokenExchangeWorkerSpec extends UnitSpec with MockitoSugar {
       when(mockSnsClient.exchangeTokens(ArgumentMatchers.eq(tokens))).thenReturn(Future.successful(endpoints))
       when(mockSnsClient.exchangeTokens(ArgumentMatchers.eq(moreTokens))).thenReturn(Future.successful(moreEndpoints))
 
-      when(mockPushRegistration.registerEndpoints(ArgumentMatchers.eq(endpoints))).thenAnswer(new Answer[Future[_]] {
-        override def answer(invocationOnMock: InvocationOnMock): Future[_] = Future.successful(Unit)
-      })
+      when(mockPushRegistration.registerEndpoints(ArgumentMatchers.eq(endpoints))).thenAnswer(new UpdateSuccess)
       when(mockPushRegistration.registerEndpoints(ArgumentMatchers.eq(moreEndpoints))).thenReturn(Future.failed(new HttpException("Wobble", 500)))
 
       await(master ? epic)

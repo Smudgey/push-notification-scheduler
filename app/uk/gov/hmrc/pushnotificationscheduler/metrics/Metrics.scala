@@ -28,6 +28,11 @@ trait MetricsApi {
   def incrementTokenExchangeSuccess(n: Long)
   def incrementTokenExchangeFailure(n: Long)
   def incrementTokenDisabled(n: Long)
+
+  def incrementNotificationDelivered(n: Long)
+  def incrementNotificationSendFailure(n: Long)
+  def incrementNotificationRequeued(n: Long)
+  def incrementNotificationDisabled(n: Long)
 }
 
 @Singleton
@@ -38,7 +43,12 @@ class Metrics extends MetricsApi with MicroserviceMetrics {
   val successful = s"$scheduler.successful"
   val failed = s"$scheduler.failed"
 
-  override def incrementTokenExchangeSuccess(n: Long): Unit = registry.meter(s"$successful.token-exchange").mark(n)
+  override def incrementTokenExchangeSuccess(n: Long): Unit = registry.meter(s"$successful.token-exchanged").mark(n)
   override def incrementTokenExchangeFailure(n: Long): Unit = registry.meter(s"$failed.token-exchange").mark(n)
   override def incrementTokenDisabled(n: Long): Unit = registry.meter(s"$successful.token-disabled").mark(n)
+
+  override def incrementNotificationDelivered(n: Long): Unit = registry.meter(s"$successful.notification-delivered").mark(n)
+  override def incrementNotificationSendFailure(n: Long): Unit = registry.meter(s"$failed.notification-send").mark(n)
+  override def incrementNotificationRequeued(n: Long): Unit = registry.meter(s"$successful.notification-requeued").mark(n)
+  override def incrementNotificationDisabled(n: Long): Unit = registry.meter(s"$successful.notification-disabled").mark(n)
 }
