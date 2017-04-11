@@ -17,11 +17,12 @@
 package uk.gov.hmrc.pushnotificationscheduler.dispatchers
 
 import java.util.concurrent.TimeUnit.HOURS
-import javax.inject.{Inject, Named}
+import javax.inject.{Inject, Named, Singleton}
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
+import com.google.inject.ImplementedBy
 import uk.gov.hmrc.pushnotificationscheduler.actor.{Master, NotificationSendWorker}
 import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.{Epic, RegisterWorker}
 import uk.gov.hmrc.pushnotificationscheduler.domain.Notification
@@ -31,12 +32,14 @@ import uk.gov.hmrc.pushnotificationscheduler.services.{PushNotificationService, 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+@ImplementedBy(classOf[NotificationDispatcher])
 trait NotificationDispatcherApi {
   def processNotifications(): Future[Unit]
 
   def isRunning: Future[Boolean]
 }
 
+@Singleton
 class NotificationDispatcher @Inject()(@Named("notificationDispatcherCount") notificationDispatcherCount: Int, snsClientService: SnsClientService, pushNotificationService: PushNotificationService, system: ActorSystem, metrics: Metrics) extends NotificationDispatcherApi {
   implicit val timeout = Timeout(1, HOURS)
 

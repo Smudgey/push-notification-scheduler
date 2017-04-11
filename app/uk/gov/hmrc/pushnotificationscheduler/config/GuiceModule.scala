@@ -41,10 +41,15 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
     bind(classOf[AuditConnector]).to(classOf[MicroserviceAuditConnector])
 
     bind(classOf[String]).annotatedWith(named("pushRegistrationUrl")).toInstance(baseUrl("push-registration"))
+    bind(classOf[String]).annotatedWith(named("pushNotificationUrl")).toInstance(baseUrl("push-notification"))
     bind(classOf[String]).annotatedWith(named("snsClientUrl")).toInstance(baseUrl("sns-client"))
 
     bind(classOf[Int]).annotatedWith(named("registrationTokenDispatcherCount")).toInstance(maximumSenders(configuration, "registrationTokenDispatcher"))
     bind(classOf[FiniteDuration]).annotatedWith(named("tokenExchangeInitialDelaySeconds")).toInstance(durationFromConfig(configuration, "registrationTokenExchangeJobApi", "initialDelay" ))
     bind(classOf[FiniteDuration]).annotatedWith(named("tokenExchangeIntervalSeconds")).toInstance(durationFromConfig(configuration, "registrationTokenExchangeJobApi", "interval" ))
+
+    bind(classOf[Int]).annotatedWith(named("notificationDispatcherCount")).toInstance(maximumSenders(configuration, "notificationDispatcher"))
+    bind(classOf[FiniteDuration]).annotatedWith(named("notificationSendInitialDelaySeconds")).toInstance(durationFromConfig(configuration, "notificationSendJobApi", "initialDelay" ))
+    bind(classOf[FiniteDuration]).annotatedWith(named("notificationSendIntervalSeconds")).toInstance(durationFromConfig(configuration, "notificationSendJobApi", "interval" ))
   }
 }
