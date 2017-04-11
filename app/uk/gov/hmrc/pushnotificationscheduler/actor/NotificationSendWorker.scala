@@ -18,8 +18,8 @@ package uk.gov.hmrc.pushnotificationscheduler.actor
 
 import akka.actor.{ActorRef, Props}
 import play.api.Logger
-import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.{Delivered, Disabled, Queued}
-import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus}
+import uk.gov.hmrc.pushnotificationscheduler.domain.DeliveryStatus.{Failed, Success, Disabled}
+import uk.gov.hmrc.pushnotificationscheduler.domain.{DeliveryStatus, Notification}
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services.{PushNotificationService, SnsClientService}
 
@@ -28,16 +28,17 @@ import scala.util.Failure
 
 class NotificationSendWorker(master: ActorRef, snsClientService: SnsClientService, pushNotificationService: PushNotificationService, metrics: Metrics) extends Worker[Seq[Notification]](master) {
   override def doWork(work: Seq[Notification]): Future[_] = {
-    snsClientService.sendNotifications(work).map { (messageIdToStatusMap: Map[String, NotificationStatus]) =>
-      pushNotificationService.updateNotifications(messageIdToStatusMap)
-      .onComplete {
+    snsClientService.sendNotifications(work).map { (messageIdToStatusMap: Map[String, DeliveryStatus]) => {
+      val messageIdToNotificationStatusMap = messageIdToStatusMap.map(kv => (kv._1, kv._2.toNotificationStatus))
+      pushNotificationService.updateNotifications(messageIdToNotificationStatusMap)
+    }.onComplete {
         case Failure(e) =>
           Logger.error(s"Failed to update notification status: ${e.getMessage}")
           metrics.incrementNotificationSendFailure(work.size)
           Future.failed(e)
         case _ =>
-          metrics.incrementNotificationDelivered(messageIdToStatusMap.count(_._2 == Delivered))
-          metrics.incrementNotificationRequeued(messageIdToStatusMap.count(_._2 == Queued))
+          metrics.incrementNotificationDelivered(messageIdToStatusMap.count(_._2 == Success))
+          metrics.incrementNotificationRequeued(messageIdToStatusMap.count(_._2 == Failed))
           metrics.incrementNotificationDisabled(messageIdToStatusMap.count(_._2 == Disabled))
       }
     }

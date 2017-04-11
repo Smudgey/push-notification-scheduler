@@ -19,15 +19,15 @@ package uk.gov.hmrc.pushnotificationscheduler.dispatchers
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import org.mockito.Mockito.when
-import org.mockito.stubbing.Answer
 import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.actor.UpdateSuccess
-import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.{Delivered, Disabled, Queued}
-import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus, RegistrationToken}
+import uk.gov.hmrc.pushnotificationscheduler.domain.DeliveryStatus.{Disabled, Failed, Success}
+import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.{Delivered, Queued, Revoked}
+import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus}
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services.{PushNotificationService, SnsClientService}
 
@@ -46,12 +46,17 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
       Notification("msg-100", "end:point:a", "I wandered lonely as a cloud"),
       Notification("msg-101", "end:point:a", "That floats on high o'er vales and hills,"),
       Notification("msg-102", "end:point:b", "When all at once I saw a crowd"),
-      Notification("msg-102", "end:point:c", "A host, of golden daffodils"))
-    val statuses = Map(
+      Notification("msg-103", "end:point:c", "A host, of golden daffodils"))
+    val deliveryStatuses = Map(
+      "msg-100" -> Success,
+      "msg-101" -> Success,
+      "msg-102" -> Failed,
+      "msg-103" -> Disabled)
+    val notificationStatuses = Map(
       "msg-100" -> Delivered,
-      "msg-100" -> Delivered,
-      "msg-100" -> Queued,
-      "msg-100" -> Disabled)
+      "msg-101" -> Delivered,
+      "msg-102" -> Queued,
+      "msg-103" -> Revoked)
 
     val dispatcher = new NotificationDispatcher(4, mockSnsClient, mockPushNotification, system, mockMetrics)
   }
@@ -60,7 +65,7 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
     "process unsent notifications" in new Setup {
       when(mockPushNotification.getUnsentNotifications).thenReturn(successful(unsentNotifications))
       when(mockPushNotification.updateNotifications(ArgumentMatchers.any[Map[String, NotificationStatus]]())).thenAnswer(new UpdateSuccess)
-      when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]]())).thenReturn(successful(statuses))
+      when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]]())).thenReturn(successful(deliveryStatuses))
 
       await(dispatcher.processNotifications())
 
@@ -72,7 +77,7 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
         val actualMap: Map[String, NotificationStatus] = mapCaptor.getValue
 
         actualNotifications shouldBe unsentNotifications
-        actualMap shouldBe statuses
+        actualMap shouldBe notificationStatuses
       }
     }
 

@@ -29,8 +29,8 @@ import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.ws.WSHttp
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows, iOS}
-import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.Delivered
-import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus, RegistrationToken}
+import uk.gov.hmrc.pushnotificationscheduler.domain.DeliveryStatus
+import uk.gov.hmrc.pushnotificationscheduler.domain.{DeliveryStatus, Notification, RegistrationToken}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
@@ -54,17 +54,17 @@ class SnsClientConnectorSpec extends UnitSpec with WithFakeApplication with Serv
 
   private trait Success extends Setup {
     doReturn(successful(unregisteredTokens.map(_.token -> UUID.randomUUID().toString).toMap), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(unregisteredTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
-    doReturn(successful(notifications.map(_.messageId -> Delivered).toMap), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,NotificationStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]](), any[Seq[(String, String)]])(any[Writes[Seq[Notification]]](), any[HttpReads[Map[String,NotificationStatus]]](), any[HeaderCarrier]())
+    doReturn(successful(notifications.map(_.id -> DeliveryStatus.Success).toMap), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,DeliveryStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]](), any[Seq[(String, String)]])(any[Writes[Seq[Notification]]](), any[HttpReads[Map[String,DeliveryStatus]]](), any[HeaderCarrier]())
   }
 
   private trait BadRequest extends Setup {
     doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(badTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
-    doReturn(failed(new BadRequestException("BASH!")), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,NotificationStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]](), any[Seq[(String, String)]])(any[Writes[Seq[Notification]]](), any[HttpReads[Map[String,NotificationStatus]]](), any[HeaderCarrier]())
+    doReturn(failed(new BadRequestException("BASH!")), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,DeliveryStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]](), any[Seq[(String, String)]])(any[Writes[Seq[Notification]]](), any[HttpReads[Map[String,DeliveryStatus]]](), any[HeaderCarrier]())
   }
 
   private trait Failed extends Setup {
     doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(breakingTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
-    doReturn(failed(Upstream5xxResponse("SPLAT!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,NotificationStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]](), any[Seq[(String, String)]])(any[Writes[Seq[Notification]]](), any[HttpReads[Map[String,NotificationStatus]]](), any[HeaderCarrier]())
+    doReturn(failed(Upstream5xxResponse("SPLAT!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,DeliveryStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]](), any[Seq[(String, String)]])(any[Writes[Seq[Notification]]](), any[HttpReads[Map[String,DeliveryStatus]]](), any[HeaderCarrier]())
   }
 
   "exchangeTokens" should {
@@ -89,9 +89,10 @@ class SnsClientConnectorSpec extends UnitSpec with WithFakeApplication with Serv
 
   "sendNotifications" should {
     "succeed when a 200 response is received" in new Success {
-      val result: Map[String, NotificationStatus] = await(connector.sendNotifications(notifications))
+      val result: Map[String, DeliveryStatus] = await(connector.sendNotifications(notifications))
 
-      result.keySet.toList shouldBe notifications.map(_.messageId)
+      result.keySet.toList shouldBe notifications.map(_.id)
+      result.values.count(_ == DeliveryStatus.Success) shouldBe 2
     }
 
     "throw BadRequestException when a 400 response is returned" in new BadRequest {

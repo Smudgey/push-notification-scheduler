@@ -17,6 +17,7 @@
 package uk.gov.hmrc.pushnotificationscheduler.domain
 
 import play.api.libs.json._
+import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.{Delivered, Queued, Revoked}
 
 trait NotificationStatus
 
@@ -24,7 +25,7 @@ object NotificationStatus {
   val queued = "queued"
   val sent = "sent"
   val delivered = "delivered"
-  val disabled = "disabled"
+  val revoked = "disabled"
 
   case object Queued extends NotificationStatus {
     override def toString: String = queued
@@ -38,8 +39,8 @@ object NotificationStatus {
     override def toString: String = delivered
   }
 
-  case object Disabled extends NotificationStatus {
-    override def toString: String = disabled
+  case object Revoked extends NotificationStatus {
+    override def toString: String = revoked
   }
 
   val reads: Reads[NotificationStatus] = new Reads[NotificationStatus] {
@@ -47,7 +48,7 @@ object NotificationStatus {
       case JsString(NotificationStatus.queued) => JsSuccess(Queued)
       case JsString(NotificationStatus.sent) => JsSuccess(Sent)
       case JsString(NotificationStatus.delivered) => JsSuccess(Delivered)
-      case JsString(NotificationStatus.disabled) => JsSuccess(Disabled)
+      case JsString(NotificationStatus.revoked) => JsSuccess(Revoked)
       case _ => JsError(s"Failed to resolve $json")
     }
   }
@@ -57,14 +58,51 @@ object NotificationStatus {
       case Queued => JsString(queued)
       case Sent => JsString(sent)
       case Delivered => JsString(delivered)
-      case Disabled => JsString(disabled)
+      case Revoked => JsString(revoked)
     }
   }
 
   implicit val formats = Format(NotificationStatus.reads, NotificationStatus.writes)
 }
 
-case class Notification(messageId: String, endpoint: String, message: String)
+trait DeliveryStatus {
+  def toNotificationStatus: NotificationStatus = ???
+}
+
+object DeliveryStatus extends NotificationStatus {
+  val success = "success"
+  val failed = "failed"
+  val disabled = "disabled"
+
+  case object Success extends DeliveryStatus {
+    override def toString: String = success
+
+    override def toNotificationStatus: NotificationStatus = Delivered
+  }
+
+  case object Failed extends DeliveryStatus {
+    override def toString: String = failed
+
+    override def toNotificationStatus: NotificationStatus = Queued
+  }
+
+  case object Disabled extends DeliveryStatus {
+    override def toString: String = disabled
+
+    override def toNotificationStatus: NotificationStatus = Revoked
+  }
+
+  implicit val reads: Reads[DeliveryStatus] = new Reads[DeliveryStatus] {
+    override def reads(json: JsValue): JsResult[DeliveryStatus] = json match {
+      case JsString(DeliveryStatus.success) => JsSuccess(Success)
+      case JsString(DeliveryStatus.failed) => JsSuccess(Failed)
+      case JsString(DeliveryStatus.disabled) => JsSuccess(Disabled)
+      case _ => JsError(s"Failed to resolve $json")
+    }
+  }
+}
+
+case class Notification(id: String, endpointArn: String, message: String)
 
 object Notification {
   implicit val formats = Json.format[Notification]

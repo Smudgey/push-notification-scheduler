@@ -18,7 +18,7 @@ package uk.gov.hmrc.pushnotificationscheduler.actor
 
 import java.util.concurrent.TimeUnit.MINUTES
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.TestKit
 import akka.util.Timeout
@@ -30,7 +30,8 @@ import org.scalatest.mock.MockitoSugar
 import uk.gov.hmrc.play.http.HttpException
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.Epic
-import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.{Delivered, Disabled, Queued}
+import uk.gov.hmrc.pushnotificationscheduler.domain.DeliveryStatus.{Disabled, Failed, Success}
+import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.{Delivered, Queued, Revoked}
 import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, RegistrationToken}
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services.{PushNotificationService, SnsClientService}
@@ -49,8 +50,8 @@ class NotificationSendWorkerSpec extends UnitSpec with MockitoSugar {
 
     implicit val timeout = Timeout(1, MINUTES)
 
-    val master = system.actorOf(Props[Master[Work]], "master")
-    val worker = system.actorOf(NotificationSendWorker.props(master, mockSnsClient, mockPushNotification, mockMetrics))
+    val master: ActorRef = system.actorOf(Props[Master[Work]], "master")
+    val worker: ActorRef = system.actorOf(NotificationSendWorker.props(master, mockSnsClient, mockPushNotification, mockMetrics))
 
     val someNotifications = List(
       Notification("msg-1", "end:point:a", "’TWAS in the month of December, and in the year 1883"),
@@ -66,19 +67,23 @@ class NotificationSendWorkerSpec extends UnitSpec with MockitoSugar {
     )
     val unsentNotifications = List(someNotifications, moreNotifications, evenMoreNotifications)
 
-    val someStatuses = Map("msg-1" -> Delivered, "msg-2" -> Delivered, "msg-3" -> Queued, "msg-4" -> Delivered)
-    val moreStatuses = Map("msg-5" -> Delivered, "msg-6" -> Queued)
-    val evenMoreStatuses = Map("msg-7" -> Disabled, "msg-8" -> Disabled)
+    val someDeliveryStatuses = Map("msg-1" -> Success, "msg-2" -> Success, "msg-3" -> Failed, "msg-4" -> Success)
+    val moreDeliveryStatuses = Map("msg-5" -> Success, "msg-6" -> Failed)
+    val evenMoreDeliveryStatuses = Map("msg-7" -> Disabled, "msg-8" -> Disabled)
+
+    val someNotificationStatuses = Map("msg-1" -> Delivered, "msg-2" -> Delivered, "msg-3" -> Queued, "msg-4" -> Delivered)
+    val moreNotificationStatuses = Map("msg-5" -> Delivered, "msg-6" -> Queued)
+    val evenMoreNotificationStatuses = Map("msg-7" -> Revoked, "msg-8" -> Revoked)
 
     val epic = Epic(unsentNotifications)
 
-    when(mockSnsClient.sendNotifications(ArgumentMatchers.eq(someNotifications))).thenReturn(Future.successful(someStatuses))
-    when(mockSnsClient.sendNotifications(ArgumentMatchers.eq(moreNotifications))).thenReturn(Future.successful(moreStatuses))
-    when(mockSnsClient.sendNotifications(ArgumentMatchers.eq(evenMoreNotifications))).thenReturn(Future.successful(evenMoreStatuses))
+    when(mockSnsClient.sendNotifications(ArgumentMatchers.eq(someNotifications))).thenReturn(Future.successful(someDeliveryStatuses))
+    when(mockSnsClient.sendNotifications(ArgumentMatchers.eq(moreNotifications))).thenReturn(Future.successful(moreDeliveryStatuses))
+    when(mockSnsClient.sendNotifications(ArgumentMatchers.eq(evenMoreNotifications))).thenReturn(Future.successful(evenMoreDeliveryStatuses))
 
-    when(mockPushNotification.updateNotifications(ArgumentMatchers.eq(someStatuses))).thenAnswer(new UpdateSuccess)
-    when(mockPushNotification.updateNotifications(ArgumentMatchers.eq(evenMoreStatuses))).thenAnswer(new UpdateSuccess)
-    when(mockPushNotification.updateNotifications(ArgumentMatchers.eq(moreStatuses))).thenReturn(Future.failed(new HttpException("Wibble", 500)))
+    when(mockPushNotification.updateNotifications(ArgumentMatchers.eq(someNotificationStatuses))).thenAnswer(new UpdateSuccess)
+    when(mockPushNotification.updateNotifications(ArgumentMatchers.eq(moreNotificationStatuses))).thenReturn(Future.failed(new HttpException("Wibble", 500)))
+    when(mockPushNotification.updateNotifications(ArgumentMatchers.eq(evenMoreNotificationStatuses))).thenAnswer(new UpdateSuccess)
   }
 
   "When started with an epic a NotificationSendWorker" should {
