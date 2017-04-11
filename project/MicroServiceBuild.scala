@@ -12,7 +12,6 @@ object MicroServiceBuild extends Build with MicroService {
   override lazy val appDependencies: Seq[ModuleID] = compile ++ test()
 
   val compile = Seq(
-    "uk.gov.hmrc" %% "play-reactivemongo" % "5.2.0",
     ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % "5.11.0",
     "uk.gov.hmrc" %% "play-authorisation" % "4.3.0",
