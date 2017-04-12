@@ -26,6 +26,7 @@ import akka.actor.Terminated
 import scala.concurrent.Future
 
 object WorkPullingPattern {
+  type Batch[T] = Seq[T]
   sealed trait Message
   case class Epic[T](epic: immutable.Iterable[T]) extends Message //used by master to create work (in a streaming way)
   case object GimmeWork extends Message
@@ -39,7 +40,6 @@ object WorkPullingPattern {
 class Master[T] extends Actor {
   val workers = mutable.Set.empty[ActorRef]
   val activeWorkers = mutable.Map.empty[ActorRef, Boolean]
-
 
   override def receive: PartialFunction[Any, Unit] = idle orElse workerAdmin
 

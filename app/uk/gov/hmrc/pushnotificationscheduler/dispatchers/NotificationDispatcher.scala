@@ -24,7 +24,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.google.inject.ImplementedBy
 import uk.gov.hmrc.pushnotificationscheduler.actor.{Master, NotificationSendWorker}
-import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.{Epic, RegisterWorker}
+import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.{Batch, Epic, RegisterWorker}
 import uk.gov.hmrc.pushnotificationscheduler.domain.Notification
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services.{PushNotificationService, SnsClientService}
@@ -43,7 +43,7 @@ trait NotificationDispatcherApi {
 class NotificationDispatcher @Inject()(@Named("notificationDispatcherCount") notificationDispatcherCount: Int, snsClientService: SnsClientService, pushNotificationService: PushNotificationService, system: ActorSystem, metrics: Metrics) extends NotificationDispatcherApi {
   implicit val timeout = Timeout(1, HOURS)
 
-  lazy val gangMaster: ActorRef = system.actorOf(Props[Master[Seq[Notification]]])
+  lazy val gangMaster: ActorRef = system.actorOf(Props[Master[Batch[Notification]]])
 
   val name = "registration-token-dispatcher"
 
@@ -53,8 +53,8 @@ class NotificationDispatcher @Inject()(@Named("notificationDispatcherCount") not
 
   override def processNotifications(): Future[Unit] = {
     for {
-      work <- pushNotificationService.getUnsentNotifications
-      _ <- gangMaster ? Epic[Seq[Notification]](List(work))
+      work: Batch[Notification] <- pushNotificationService.getUnsentNotifications
+      _ <- gangMaster ? Epic[Batch[Notification]](List(work))
     } yield ()
     Future.successful(Unit)
   }

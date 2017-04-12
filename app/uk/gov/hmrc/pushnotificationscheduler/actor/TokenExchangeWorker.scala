@@ -18,6 +18,7 @@ package uk.gov.hmrc.pushnotificationscheduler.actor
 
 import akka.actor.{ActorRef, Props}
 import play.api.Logger
+import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.Batch
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services.{PushRegistrationService, SnsClientService}
@@ -25,8 +26,8 @@ import uk.gov.hmrc.pushnotificationscheduler.services.{PushRegistrationService, 
 import scala.concurrent.Future
 import scala.util.Failure
 
-class TokenExchangeWorker(master: ActorRef, snsClientService: SnsClientService, pushRegistrationService: PushRegistrationService, metrics: Metrics) extends Worker[Seq[RegistrationToken]](master) {
-  override def doWork(work: Seq[RegistrationToken]): Future[_] = {
+class TokenExchangeWorker(master: ActorRef, snsClientService: SnsClientService, pushRegistrationService: PushRegistrationService, metrics: Metrics) extends Worker[Batch[RegistrationToken]](master) {
+  override def doWork(work: Batch[RegistrationToken]): Future[_] = {
 
     snsClientService.exchangeTokens(work).map { (tokenToEndpointMap: Map[String, Option[String]]) =>
       pushRegistrationService.registerEndpoints(tokenToEndpointMap)

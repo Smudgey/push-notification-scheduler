@@ -23,7 +23,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.google.inject.ImplementedBy
-import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.{Epic, RegisterWorker}
+import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.{Batch, Epic, RegisterWorker}
 import uk.gov.hmrc.pushnotificationscheduler.actor.{Master, TokenExchangeWorker}
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
@@ -43,7 +43,7 @@ trait RegistrationTokenDispatcherApi {
 class RegistrationTokenDispatcher @Inject()(@Named("registrationTokenDispatcherCount") tokenDispatcherCount: Int, snsClientService: SnsClientService, pushRegistrationService: PushRegistrationService, system: ActorSystem, metrics: Metrics) extends RegistrationTokenDispatcherApi {
   implicit val timeout = Timeout(1, HOURS)
 
-  lazy val gangMaster: ActorRef = system.actorOf(Props[Master[Seq[RegistrationToken]]])
+  lazy val gangMaster: ActorRef = system.actorOf(Props[Master[Batch[RegistrationToken]]])
 
   val name = "registration-token-dispatcher"
 
@@ -54,15 +54,15 @@ class RegistrationTokenDispatcher @Inject()(@Named("registrationTokenDispatcherC
   // TODO: decide how often failed registrations should be retried
   override def exchangeRegistrationTokensForEndpoints(): Future[Unit] = {
     for {
-          unregisteredTokens: Seq[RegistrationToken] <- pushRegistrationService.getUnregisteredTokens
-          recoveredTokens: Seq[RegistrationToken] <- pushRegistrationService.recoverFailedRegistrations
+          unregisteredTokens: Batch[RegistrationToken] <- pushRegistrationService.getUnregisteredTokens
+          recoveredTokens: Batch[RegistrationToken] <- pushRegistrationService.recoverFailedRegistrations
           work <- Future.successful {
             if (unregisteredTokens.nonEmpty || recoveredTokens.nonEmpty)
               List(unregisteredTokens ++ recoveredTokens)
             else
               List.empty
           }
-          _ <- gangMaster ? Epic[Seq[RegistrationToken]](work)
+          _ <- gangMaster ? Epic[Batch[RegistrationToken]](work)
         } yield ()
     Future.successful(Unit)
   }

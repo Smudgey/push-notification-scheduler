@@ -18,7 +18,8 @@ package uk.gov.hmrc.pushnotificationscheduler.actor
 
 import akka.actor.{ActorRef, Props}
 import play.api.Logger
-import uk.gov.hmrc.pushnotificationscheduler.domain.DeliveryStatus.{Failed, Success, Disabled}
+import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.Batch
+import uk.gov.hmrc.pushnotificationscheduler.domain.DeliveryStatus.{Disabled, Failed, Success}
 import uk.gov.hmrc.pushnotificationscheduler.domain.{DeliveryStatus, Notification}
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services.{PushNotificationService, SnsClientService}
@@ -26,8 +27,8 @@ import uk.gov.hmrc.pushnotificationscheduler.services.{PushNotificationService, 
 import scala.concurrent.Future
 import scala.util.Failure
 
-class NotificationSendWorker(master: ActorRef, snsClientService: SnsClientService, pushNotificationService: PushNotificationService, metrics: Metrics) extends Worker[Seq[Notification]](master) {
-  override def doWork(work: Seq[Notification]): Future[_] = {
+class NotificationSendWorker(master: ActorRef, snsClientService: SnsClientService, pushNotificationService: PushNotificationService, metrics: Metrics) extends Worker[Batch[Notification]](master) {
+  override def doWork(work: Batch[Notification]): Future[_] = {
     snsClientService.sendNotifications(work).map { (messageIdToStatusMap: Map[String, DeliveryStatus]) => {
       val messageIdToNotificationStatusMap = messageIdToStatusMap.map(kv => (kv._1, kv._2.toNotificationStatus))
       pushNotificationService.updateNotifications(messageIdToNotificationStatusMap)
