@@ -54,16 +54,16 @@ class NotificationSendWorkerSpec extends UnitSpec with MockitoSugar {
     val worker: ActorRef = system.actorOf(NotificationSendWorker.props(master, mockSnsClient, mockPushNotification, mockMetrics))
 
     val someNotifications = List(
-      Notification("msg-1", "end:point:a", "’TWAS in the month of December, and in the year 1883"),
-      Notification("msg-2", "end:point:a", "That a monster whale came to Dundee"),
-      Notification("msg-3", "end:point:a", "Resolved for a few days to sport and play"),
-      Notification("msg-4", "end:point:a", "And devour the small fishes in the silvery Tay"))
+      Notification("msg-1", "end:point:a", "’TWAS in the month of December, and in the year 1883", None, "windows"),
+      Notification("msg-2", "end:point:a", "That a monster whale came to Dundee", Some("1"), "windows"),
+      Notification("msg-3", "end:point:a", "Resolved for a few days to sport and play", None, "windows"),
+      Notification("msg-4", "end:point:a", "And devour the small fishes in the silvery Tay", Some("2"), "windows"))
     val moreNotifications = List(
-      Notification("msg-5", "end:point:b", "So the monster whale did sport and play"),
-      Notification("msg-6", "end:point:c", "Among the innocent little fishes in the beautiful Tay"))
+      Notification("msg-5", "end:point:b", "So the monster whale did sport and play", Some("3"), "windows"),
+      Notification("msg-6", "end:point:c", "Among the innocent little fishes in the beautiful Tay", None, "windows"))
     val evenMoreNotifications = List(
-      Notification("msg-7", "end:point:d", "Until he was seen by some men one day"),
-      Notification("msg-8", "end:point:d", "And they resolved to catch him without delay")
+      Notification("msg-7", "end:point:d", "Until he was seen by some men one day", None, "windows"),
+      Notification("msg-8", "end:point:d", "And they resolved to catch him without delay", Some("4"), "windows")
     )
     val unsentNotifications = List(someNotifications, moreNotifications, evenMoreNotifications)
 

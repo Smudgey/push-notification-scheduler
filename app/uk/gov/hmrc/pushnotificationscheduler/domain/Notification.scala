@@ -102,7 +102,7 @@ object DeliveryStatus extends NotificationStatus {
   }
 }
 
-case class Notification(id: String, endpointArn: String, message: String)
+case class Notification(id: String, endpointArn: String, message: String, messageId: Option[String], os: String)
 
 object Notification {
   implicit val formats = Json.format[Notification]

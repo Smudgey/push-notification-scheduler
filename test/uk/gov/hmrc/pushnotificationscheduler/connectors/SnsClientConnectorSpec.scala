@@ -27,15 +27,15 @@ import play.api.libs.json.Writes
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.ws.WSHttp
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows, iOS}
-import uk.gov.hmrc.pushnotificationscheduler.domain.DeliveryStatus
 import uk.gov.hmrc.pushnotificationscheduler.domain.{DeliveryStatus, Notification, RegistrationToken}
+import uk.gov.hmrc.pushnotificationscheduler.support.WithTestApplication
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
-class SnsClientConnectorSpec extends UnitSpec with WithFakeApplication with ServicesConfig with ScalaFutures {
+class SnsClientConnectorSpec extends UnitSpec with WithTestApplication with ServicesConfig with ScalaFutures {
 
   private trait Setup extends MockitoSugar {
     val mockHttp: WSHttp = mock[WSHttp]
@@ -47,8 +47,8 @@ class SnsClientConnectorSpec extends UnitSpec with WithFakeApplication with Serv
     val breakingTokens = List(RegistrationToken("garply", Android))
 
     val notifications = List(
-      Notification("msg-1", "end:point:a", "Beautiful Railway Bridge of the Silvery Tay!"),
-      Notification("msg-2", "end:point:a", "With your numerous arches and pillars in so grand array")
+      Notification("msg-1", "end:point:a", "Beautiful Railway Bridge of the Silvery Tay!", Some("1"), "windows"),
+      Notification("msg-2", "end:point:a", "With your numerous arches and pillars in so grand array", Some("1"), "windows")
     )
   }
 

@@ -27,21 +27,22 @@ import uk.gov.hmrc.play.http.ws.WSHttp
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.{Delivered, Queued}
 import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus}
+import uk.gov.hmrc.pushnotificationscheduler.support.WithTestApplication
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
-class PushNotificationConnectorSpec extends UnitSpec with WithFakeApplication with ServicesConfig with ScalaFutures {
+class PushNotificationConnectorSpec extends UnitSpec with WithTestApplication with ServicesConfig with ScalaFutures {
 
   private trait Setup extends MockitoSugar {
     val mockHttp: WSHttp = mock[WSHttp]
 
     val connector = new PushNotificationConnector("http://somewhere:8080", mockHttp)
 
-    val someNotification = Notification("msg-1", "end:point:1", "hello world")
-    val otherNotification = Notification("msg-2", "end:point:2", "goodbye")
+    val someNotificationWithoutAMessageId = Notification("msg-1", "end:point:1", "hello world", None, "windows")
+    val otherNotificationWithAMessageId = Notification("msg-2", "end:point:2", "goodbye", Some("1"), "windows")
 
-    val unsentNotifications = Seq(someNotification, otherNotification)
+    val unsentNotifications = Seq(someNotificationWithoutAMessageId, otherNotificationWithAMessageId)
 
     val someStatus = Map("msg-1" -> Delivered, "msg-2" -> Queued)
   }
@@ -67,8 +68,8 @@ class PushNotificationConnectorSpec extends UnitSpec with WithFakeApplication wi
       val result: Seq[Notification] = await(connector.getUnsentNotifications())
 
       result.size shouldBe 2
-      result.head shouldBe someNotification
-      result(1) shouldBe otherNotification
+      result.head shouldBe someNotificationWithoutAMessageId
+      result(1) shouldBe otherNotificationWithAMessageId
     }
 
     "throw BadRequestException when a 400 response is returned" in new BadRequest {

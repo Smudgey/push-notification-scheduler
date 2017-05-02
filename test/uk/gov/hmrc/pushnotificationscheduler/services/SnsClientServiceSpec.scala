@@ -40,8 +40,8 @@ class SnsClientServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures 
     val expectedTokenToEndpointMap = Map(expectedTokens map {t => (t.token, Option("/endpoint/" + t.token))} : _*)
 
     val expectedNotifications = List(
-      Notification("msg-1", "end:point:a", "In an immense wood in the south of Kent,"),
-      Notification("msg-2", "end:point:b", "There lived a band of robbers which caused the people discontent;")
+      Notification("msg-1", "end:point:a", "In an immense wood in the south of Kent,", None, "windows"),
+      Notification("msg-2", "end:point:b", "There lived a band of robbers which caused the people discontent;", Some("1"), "windows")
     )
     val expectedMessageIdToStatusMap = Map("msg-1" -> Success, "msg-2" -> Disabled)
   }
