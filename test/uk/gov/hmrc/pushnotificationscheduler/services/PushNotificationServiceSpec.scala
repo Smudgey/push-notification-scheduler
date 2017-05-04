@@ -38,14 +38,14 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
 
     val service = new PushNotificationService(connector)
 
-    val someNotification = Notification("msg-1", "end:point:a", "Twas brillig, and the slithy toves")
-    val otherNotification = Notification("msg-2", "end:point:b", "Did gyre and gimble in the wabe")
+    val someNotificationWithoutMessageId = Notification("msg-1", "end:point:a", "Twas brillig, and the slithy toves", None, "windows")
+    val otherNotificationWithMessageId = Notification("msg-2", "end:point:b", "Did gyre and gimble in the wabe", Some("1"), "windows")
 
     val someStatuses = Map("msg-1" -> Delivered, "msg-2" -> Queued)
   }
 
   private trait Success extends Setup {
-    when(connector.getUnsentNotifications(anyInt())(any[ExecutionContext]())).thenReturn(Future.successful(Seq(someNotification, otherNotification)))
+    when(connector.getUnsentNotifications(anyInt())(any[ExecutionContext]())).thenReturn(Future.successful(Seq(someNotificationWithoutMessageId, otherNotificationWithMessageId)))
     when(connector.updateNotifications(any[Map[String,NotificationStatus]])(any[ExecutionContext]())).thenReturn(Future.successful(Success(200)))
   }
 
@@ -69,8 +69,8 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
       val result = await(service.getUnsentNotifications)
 
       result.size shouldBe 2
-      result.head shouldBe someNotification
-      result(1) shouldBe otherNotification
+      result.head shouldBe someNotificationWithoutMessageId
+      result(1) shouldBe otherNotificationWithMessageId
     }
 
     "return an empty list when no unsent messages are available" in new NotFound {

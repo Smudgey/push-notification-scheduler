@@ -43,10 +43,10 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
 
   private abstract class Setup extends TestKit(ActorSystem("AkkaTestSystem")) {
     val unsentNotifications = List(
-      Notification("msg-100", "end:point:a", "I wandered lonely as a cloud"),
-      Notification("msg-101", "end:point:a", "That floats on high o'er vales and hills,"),
-      Notification("msg-102", "end:point:b", "When all at once I saw a crowd"),
-      Notification("msg-103", "end:point:c", "A host, of golden daffodils"))
+      Notification("msg-100", "end:point:a", "I wandered lonely as a cloud", Some("1"), "windows"),
+      Notification("msg-101", "end:point:a", "That floats on high o'er vales and hills,", Some("1"), "windows"),
+      Notification("msg-102", "end:point:b", "When all at once I saw a crowd", Some("1"), "windows"),
+      Notification("msg-103", "end:point:c", "A host, of golden daffodils", Some("1"), "windows"))
     val deliveryStatuses = Map(
       "msg-100" -> Success,
       "msg-101" -> Success,
