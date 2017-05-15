@@ -32,8 +32,6 @@ trait MicroService {
   lazy val playSettings : Seq[Setting[_]] = Seq.empty
   lazy val defaultPort = 8244
 
-// TODO: COMMIT OTHER PR's first!!!
-
   lazy val externalServices = List(
     ExternalService(name = "DATASTREAM"),
     ExternalService(name = "PUSH_REGISTRATION", enableTestOnlyEndpoints = true),
