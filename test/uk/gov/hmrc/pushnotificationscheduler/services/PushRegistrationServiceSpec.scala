@@ -47,7 +47,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
   "PushRegistrationService.getUnregisteredTokens" should {
 
     "return unregistered tokens when unregistered tokens are available" in new Setup {
-      when(connector.getUnregisteredTokens(anyInt())(any[ExecutionContext]())).thenReturn(Future.successful(expectedTokens))
+      when(connector.getUnregisteredTokens()(any[ExecutionContext]())).thenReturn(Future.successful(expectedTokens))
 
       val result = await(service.getUnregisteredTokens)
 
@@ -55,7 +55,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when no unregistered tokens are available" in new Setup {
-      when(connector.getUnregisteredTokens(anyInt())(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Move along!", 404)))
+      when(connector.getUnregisteredTokens()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Move along!", 404)))
 
       val result = await(service.getUnregisteredTokens)
 
@@ -63,7 +63,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when the push registration service fails" in new Setup {
-      when(connector.getUnregisteredTokens(anyInt())(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+      when(connector.getUnregisteredTokens()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
 
       val result = await(service.getUnregisteredTokens)
 
@@ -74,7 +74,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
   "PushRegistrationService.recoverFailedRegistrations" should {
 
     "return previously failed tokens when such tokens are available" in new Setup {
-      when(connector.recoverFailedRegistrations(anyInt())(any[ExecutionContext]())).thenReturn(Future.successful(expectedTokens))
+      when(connector.recoverFailedRegistrations()(any[ExecutionContext]())).thenReturn(Future.successful(expectedTokens))
 
       val result = await(service.recoverFailedRegistrations)
 
@@ -82,7 +82,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when no unregistered tokens are available" in new Setup {
-      when(connector.recoverFailedRegistrations(anyInt())(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Move along!", 404)))
+      when(connector.recoverFailedRegistrations()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Move along!", 404)))
 
       val result = await(service.recoverFailedRegistrations)
 
@@ -90,7 +90,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when the push registration service fails" in new Setup {
-      when(connector.recoverFailedRegistrations(anyInt())(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+      when(connector.recoverFailedRegistrations()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
 
       val result = await(service.recoverFailedRegistrations)
 

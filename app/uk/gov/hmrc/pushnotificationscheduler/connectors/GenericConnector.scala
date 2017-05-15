@@ -33,8 +33,6 @@ trait GenericConnector {
 
   implicit lazy val hc = HeaderCarrier()
 
-  val defaultBatchSize = 10
-
   val externalServiceName = "some-service"
 
   val http: HttpGet with HttpPost with HttpDelete

@@ -45,12 +45,12 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
   }
 
   private trait Success extends Setup {
-    when(connector.getUnsentNotifications(anyInt())(any[ExecutionContext]())).thenReturn(Future.successful(Seq(someNotificationWithoutMessageId, otherNotificationWithMessageId)))
+    when(connector.getUnsentNotifications()(any[ExecutionContext]())).thenReturn(Future.successful(Seq(someNotificationWithoutMessageId, otherNotificationWithMessageId)))
     when(connector.updateNotifications(any[Map[String,NotificationStatus]])(any[ExecutionContext]())).thenReturn(Future.successful(Success(200)))
   }
 
   private trait NotFound extends Setup {
-    when(connector.getUnsentNotifications(anyInt())(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("there's nothing for you here", 404)))
+    when(connector.getUnsentNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("there's nothing for you here", 404)))
   }
 
   private trait BadRequest extends Setup {
@@ -58,7 +58,7 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
   }
 
   private trait Failed extends Setup {
-    when(connector.getUnsentNotifications(anyInt())(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+    when(connector.getUnsentNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
     when(connector.updateNotifications(any[Map[String,NotificationStatus]])(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
   }
 
