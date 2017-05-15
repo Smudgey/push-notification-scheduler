@@ -1,8 +1,12 @@
+import sbt.Keys
 import sbt.Keys._
 import sbt.Tests.{Group, SubProcess}
 import sbt._
 import play.routes.compiler.StaticRoutesGenerator
 import play.sbt.PlayImport.PlayKeys
+import uk.gov.hmrc.ExternalService
+import uk.gov.hmrc.ServiceManagerPlugin.Keys._
+import uk.gov.hmrc.ServiceManagerPlugin._
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 
 
@@ -18,12 +22,24 @@ trait MicroService {
 
   import TestPhases._
 
+  lazy val TemplateTest = config("tt") extend Test
+  lazy val TemplateItTest = config("tit") extend IntegrationTest
+
   val appName: String
 
   lazy val appDependencies : Seq[ModuleID] = ???
   lazy val plugins : Seq[Plugins] = Seq.empty
   lazy val playSettings : Seq[Setting[_]] = Seq.empty
   lazy val defaultPort = 8244
+
+  lazy val externalServices = List(
+    ExternalService(name = "DATASTREAM"),
+    ExternalService(name = "PUSH_REGISTRATION", enableTestOnlyEndpoints = true),
+    ExternalService(name = "PUSH_NOTIFICATION", enableTestOnlyEndpoints = true),
+    ExternalService(name = "AUTH", enableTestOnlyEndpoints = true),
+    ExternalService(name = "SNS_CLIENT"),
+    ExternalService(name = "AWS_SNS_STUB", enableTestOnlyEndpoints = true)
+  )
 
   lazy val microservice = Project(appName, file("."))
     .enablePlugins(Seq(play.sbt.PlayScala,SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin) ++ plugins : _*)
@@ -40,8 +56,11 @@ trait MicroService {
     )
     .configs(IntegrationTest)
     .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
+    .configs(IntegrationTest)
+    .settings(inConfig(TemplateItTest)(Defaults.itSettings): _*)
+    .settings(serviceManagerSettings: _*)
+    .settings(itDependenciesList := externalServices)
     .settings(
-      Keys.fork in IntegrationTest := false,
       unmanagedSourceDirectories in IntegrationTest <<= (baseDirectory in IntegrationTest)(base => Seq(base / "it")),
       addTestReportOption(IntegrationTest, "int-test-reports"),
       testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
