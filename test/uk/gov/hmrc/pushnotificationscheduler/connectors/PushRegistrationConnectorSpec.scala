@@ -48,72 +48,74 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithTestApplication wi
     val tokenToArns = Map("snap" -> Option("crackle"))
     val badTokenToArnMap = Map("bad" -> Option("dog"))
     val breakingTokenToArnMap = Map("broken" -> Option("heart"))
+  }
 
-    val success = 10
-    val upstreamFailure = 11
-    val badRequest = 12
-
-    doReturn(successful(unregisteredTokens), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsTuple[String, String]("maxBatchSize", success.toString)))(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
+  private trait Success extends Setup {
+    doReturn(successful(unregisteredTokens), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), any[Seq[(String,String)]]())(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
     doReturn(successful(previouslyFailedTokens), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsTuple[String, String]("mode", "recover")))(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
-    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsTuple[String, String]("maxBatchSize", badRequest.toString)))(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
-    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsTuple[String, String]("maxBatchSize", upstreamFailure.toString)))(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
-
     doReturn(successful(HttpResponse(200, None)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("snap")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
-    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("bad")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
-    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("broken")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+  }
 
+  private trait BadRequest extends Setup {
+    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), any[Seq[(String,String)]]())(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
+    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("bad")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+  }
+
+  private trait UpstreamFailure extends Setup {
+    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), any[Seq[(String,String)]]())(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
+    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("broken")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
   }
 
   "getUnregisteredTokens" should {
-    "return a valid response when a 200 response is received with a valid json payload" in new Setup {
-      val result: Seq[RegistrationToken] = await(connector.getUnregisteredTokens(success))
+    "return a valid response when a 200 response is received with a valid json payload" in new Success {
+      val result: Seq[RegistrationToken] = await(connector.getUnregisteredTokens())
       result shouldBe unregisteredTokens
     }
 
-    "throw BadRequestException when a 400 response is returned" in new Setup {
+    "throw BadRequestException when a 400 response is returned" in new BadRequest {
       intercept[BadRequestException] {
-        await(connector.getUnregisteredTokens(badRequest))
+        await(connector.getUnregisteredTokens())
       }
     }
 
-    "throw Upstream5xxResponse when a 500 response is returned" in new Setup {
+    "throw Upstream5xxResponse when a 500 response is returned" in new UpstreamFailure {
       intercept[Upstream5xxResponse] {
-        await(connector.getUnregisteredTokens(upstreamFailure))
+        await(connector.getUnregisteredTokens())
       }
     }
   }
 
   "recoverFailedRegistrations" should {
-    "return a valid response when a 200 response is received with a valid json payload" in new Setup {
-      val result: Seq[RegistrationToken] = await(connector.recoverFailedRegistrations(success))
+    "return a valid response when a 200 response is received with a valid json payload" in new Success {
+      val result: Seq[RegistrationToken] = await(connector.recoverFailedRegistrations())
       result shouldBe previouslyFailedTokens
     }
 
-    "throw BadRequestException when a 400 response is returned" in new Setup {
+    "throw BadRequestException when a 400 response is returned" in new BadRequest {
       intercept[BadRequestException] {
-        await(connector.getUnregisteredTokens(badRequest))
+        await(connector.getUnregisteredTokens())
       }
     }
 
-    "throw Upstream5xxResponse when a 500 response is returned" in new Setup {
+    "throw Upstream5xxResponse when a 500 response is returned" in new UpstreamFailure {
       intercept[Upstream5xxResponse] {
-        await(connector.recoverFailedRegistrations(upstreamFailure))
+        await(connector.recoverFailedRegistrations())
       }
     }
   }
 
   "registerEndpoints" should {
-    "succeed when a 200 response is received" in new Setup {
+    "succeed when a 200 response is received" in new Success {
       val result: Response = await(connector.registerEndpoints(tokenToArns))
       result.status shouldBe 200
     }
 
-    "throw BadRequestException when a 400 response is returned" in new Setup {
+    "throw BadRequestException when a 400 response is returned" in new BadRequest {
       intercept[BadRequestException] {
         await(connector.registerEndpoints(badTokenToArnMap))
       }
     }
-    "throw Upstream5xxResponse when a 500 response is returned" in new Setup {
+    "throw Upstream5xxResponse when a 500 response is returned" in new UpstreamFailure {
       intercept[Upstream5xxResponse] {
         await(connector.registerEndpoints(breakingTokenToArnMap))
       }

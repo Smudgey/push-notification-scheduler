@@ -19,7 +19,7 @@ package uk.gov.hmrc.pushnotificationscheduler.config
 import com.google.inject.AbstractModule
 import com.google.inject.name.Names.named
 import play.api.Mode.Mode
-import play.api.{Configuration, Environment}
+import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.{HttpDelete, HttpGet, HttpPost}
@@ -39,6 +39,8 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
     bind(classOf[HttpPost]).to(classOf[WSHttp])
     bind(classOf[HttpDelete]).to(classOf[WSHttp])
     bind(classOf[AuditConnector]).to(classOf[MicroserviceAuditConnector])
+
+    bind(classOf[Logger]).toInstance(Logger("push-notification-scheduler"))
 
     bind(classOf[String]).annotatedWith(named("pushRegistrationUrl")).toInstance(baseUrl("push-registration"))
     bind(classOf[String]).annotatedWith(named("pushNotificationUrl")).toInstance(baseUrl("push-notification"))

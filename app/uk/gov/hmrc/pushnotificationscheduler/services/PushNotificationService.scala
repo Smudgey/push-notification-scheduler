@@ -19,6 +19,7 @@ package uk.gov.hmrc.pushnotificationscheduler.services
 import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
+import play.api.Logger
 import uk.gov.hmrc.pushnotificationscheduler.connectors.PushNotificationConnectorApi
 import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus}
 
@@ -34,7 +35,7 @@ trait PushNotificationServiceApi extends EntityManager {
 }
 
 @Singleton
-class PushNotificationService @Inject() (connector: PushNotificationConnectorApi) extends PushNotificationServiceApi {
+class PushNotificationService @Inject() (connector: PushNotificationConnectorApi, override val logger: Logger) extends PushNotificationServiceApi {
   override def getUnsentNotifications: Future[Seq[Notification]] = fetch[Notification](connector.getUnsentNotifications())
 
   override def updateNotifications(notificationStatus: Map[String, NotificationStatus]): Future[_] =

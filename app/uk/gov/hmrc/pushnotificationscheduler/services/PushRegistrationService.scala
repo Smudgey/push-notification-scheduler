@@ -19,6 +19,7 @@ package uk.gov.hmrc.pushnotificationscheduler.services
 import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
+import play.api.Logger
 import uk.gov.hmrc.pushnotificationscheduler.connectors.PushRegistrationConnectorApi
 import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
 
@@ -35,7 +36,7 @@ trait PushRegistrationServiceApi extends EntityManager {
 }
 
 @Singleton
-class PushRegistrationService @Inject() (connector: PushRegistrationConnectorApi) extends PushRegistrationServiceApi {
+class PushRegistrationService @Inject() (connector: PushRegistrationConnectorApi, override val logger: Logger) extends PushRegistrationServiceApi {
   override def getUnregisteredTokens: Future[Seq[RegistrationToken]] = {
     fetch[RegistrationToken](connector.getUnregisteredTokens())
   }

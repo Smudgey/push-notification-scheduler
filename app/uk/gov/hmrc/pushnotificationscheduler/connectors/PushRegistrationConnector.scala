@@ -30,12 +30,12 @@ trait PushRegistrationConnectorApi extends GenericConnector with ServicesConfig 
 
   override val externalServiceName: String = "push-registration"
 
-  def getUnregisteredTokens(maxBatchSize: Int = defaultBatchSize)(implicit ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
-    get[Seq[RegistrationToken]]("/push/endpoint", List(("maxBatchSize", maxBatchSize.toString)))
+  def getUnregisteredTokens()(implicit ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
+    get[Seq[RegistrationToken]]("/push/endpoint", List.empty[(String,String)])
   }
 
-  def recoverFailedRegistrations(maxBatchSize: Int = defaultBatchSize)(implicit ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
-    get[Seq[RegistrationToken]]("/push/endpoint", List(("mode", "recover"), ("maxBatchSize", maxBatchSize.toString)))
+  def recoverFailedRegistrations()(implicit ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
+    get[Seq[RegistrationToken]]("/push/endpoint", List(("mode", "recover")))
   }
 
 // TODO...the update must contain the InternalAuthId associated with the token.
