@@ -54,21 +54,20 @@ trait MicroService {
       evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
       routesGenerator := StaticRoutesGenerator
     )
-    .configs(IntegrationTest)
     .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
     .configs(IntegrationTest)
-    .settings(inConfig(TemplateItTest)(Defaults.itSettings): _*)
-    .settings(serviceManagerSettings: _*)
-    .settings(itDependenciesList := externalServices)
-    .settings(
-      unmanagedSourceDirectories in IntegrationTest <<= (baseDirectory in IntegrationTest)(base => Seq(base / "it")),
-      addTestReportOption(IntegrationTest, "int-test-reports"),
-      testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
-      parallelExecution in IntegrationTest := false)
-      .settings(resolvers ++= Seq(
-        Resolver.bintrayRepo("hmrc", "releases"),
-        Resolver.jcenterRepo
-      ))
+//    .settings(inConfig(TemplateItTest)(Defaults.itSettings): _*)
+//    .settings(serviceManagerSettings: _*)
+//    .settings(itDependenciesList := externalServices)
+//    .settings(
+//      unmanagedSourceDirectories in IntegrationTest <<= (baseDirectory in IntegrationTest)(base => Seq(base / "it")),
+//      addTestReportOption(IntegrationTest, "int-test-reports"),
+//      testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
+//      parallelExecution in IntegrationTest := false)
+//      .settings(resolvers ++= Seq(
+//        Resolver.bintrayRepo("hmrc", "releases"),
+//        Resolver.jcenterRepo
+//      ))
 }
 
 private object TestPhases {
