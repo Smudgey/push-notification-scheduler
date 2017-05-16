@@ -3,7 +3,6 @@ import java.util.UUID
 
 import play.api.libs.ws._
 import play.mvc.Http.HeaderNames
-import uk.gov.hmrc.test.it.CanCreateAuthority
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import org.scalatest.concurrent.ScalaFutures
@@ -23,9 +22,11 @@ abstract class SchedulerServiceISpec(testName: String, services: Seq[ExternalSer
 
   override val server = new SchedulerIntegrationServer(testName, services, additionalConfig)
 
-  trait TestCase extends CanCreateAuthority {
+  lazy val httpClient = play.api.Play.current.injector.instanceOf[WSClient]
 
-    lazy val httpClient = play.api.Play.current.injector.instanceOf[WSClient]
+  override def beforeEach(): Unit = {
+    resetMongoRepositories
+  }
 
     def createTestNotifications(numberOfUsers: Int, numberOfDevices: Int, uniqueDevices: Boolean): Seq[TestNotification] = {
       val generator = new Generator(1)
@@ -53,19 +54,18 @@ abstract class SchedulerServiceISpec(testName: String, services: Seq[ExternalSer
       }
     }
 
-    override def authResource(path: String): String = {
-      s"http://localhost:8500/$path"
-    }
-
     def resetMongoRepositories = {
-      `/push/test-only/drop-all-records`.get() should have(status(200))
+      `/push/test-only/drop-all-records`.get() should have(status(200)) // todo...switch to delete
       `/aws-sns-stub/drop-all-records`().delete() should have(status(200))
       `/push-notification/test-only/notification/dropmongo`.delete() should have(status(200))
-      removeAllFromAuth()
     }
 
-    def authResourceNoLeadingSlash(path: String): String = {
+    def authResource(path: String): String = {
       s"http://localhost:8500$path"
+    }
+
+    def `/auth/test-only/auth/remove-all` = {
+      httpClient.url(authResource("/test-only/auth/remove-all"))
     }
 
     def `/push/test-only/drop-all-records`: WSRequest = {
@@ -108,35 +108,46 @@ abstract class SchedulerServiceISpec(testName: String, services: Seq[ExternalSer
     }
 
     def `/auth/create-authority`(nino:Nino): ((String, String), String) = {
-      val headers: (String, String) =
-        governmentGatewayAuthority(nino.value)
-          // TODO...update of CL is not working!!!
-          .withConfidenceLevel(200).withNino(Nino(nino.value))
-          .bearerTokenHeader()
+      
+      val enrolments = s"""{
+                          |"individualEnrolments":{
+                          |"nino":"${nino.value}"
+                          |}
+                          |}""".stripMargin
 
-      def updateConfidenceLevel(confidenceLevel: Int, token: String): Future[Unit] =
-        httpClient.url(authResourceNoLeadingSlash("/auth/authority"))
-          .withHeaders(HeaderNames.AUTHORIZATION -> token)
+      httpClient.url(
+        authResource(s"/auth/gg/${nino.value}/sign-in")).withHeaders("Content-Type" -> "application/json")
+        .post(Json.parse(enrolments)) should have(status(200))
+
+      val exchange = httpClient.url(
+        authResource(s"/auth/gg/${nino.value}/exchange")).withHeaders("Content-Type" -> "application/json")
+        .post("{}").futureValue
+      val bearerToken = (exchange.json \\ "authToken").head.as[String]
+      val authHeader = (HeaderNames.AUTHORIZATION, bearerToken)
+
+      // TODO: Remove once push-notification removes cl=200 check.
+      def updateConfidenceLevel(confidenceLevel: Int): Future[Unit] = {
+        httpClient.url(authResource("/auth/authority"))
+          .withHeaders(authHeader).withHeaders("Content-Type" -> "application/json")
           .patch(Json.obj(("confidenceLevel", confidenceLevel)))
-          .map(_ => ())
+          .map(res => ())
+      }
+      updateConfidenceLevel(200).futureValue
 
-        await(updateConfidenceLevel(200, headers._2))
+      val authority: WSResponse = httpClient.url(
+        authResource("/auth/authority"))
+        .withHeaders(authHeader)
+        .get().futureValue
+      val ids = (authority.json \ "ids").as[String]
 
-        val authority: WSResponse = await(httpClient.url(
-          authResourceNoLeadingSlash("/auth/authority"))
-          .withHeaders(HeaderNames.AUTHORIZATION ->
-          headers._2)
-          .get())
-        val ids = (authority.json \ "ids").as[String]
-
-      val internalId = await(httpClient.url(authResourceNoLeadingSlash(ids))
-        .withHeaders(HeaderNames.AUTHORIZATION -> headers._2)
-        .get())
+      val internalId = httpClient.url(authResource(ids))
+        .withHeaders(authHeader)
+        .get().futureValue
       val authInternalId = (internalId.json \ "internalId").as[String]
 
-      (headers, authInternalId)
+      (authHeader, authInternalId)
     }
 
-  }
+//  }
 
 }
