@@ -21,6 +21,7 @@ import org.mockito.ArgumentMatchers.{any, anyInt}
 import org.mockito.Mockito.{verify, when}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
+import play.api.Logger
 import uk.gov.hmrc.play.http.Upstream5xxResponse
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.connectors.{Error, PushRegistrationConnector, Success}
@@ -36,8 +37,9 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
 
   private trait Setup extends MockitoSugar {
     val connector = mock[PushRegistrationConnector]
+    val logger = mock[Logger]
 
-    val service = new PushRegistrationService(connector)
+    val service = new PushRegistrationService(connector, logger)
 
     val expectedTokens = List(RegistrationToken("foo", Android), RegistrationToken("bar", Windows))
     val expectedMap = Map("token" -> Option("endpoint"), "otherToken" -> None)
@@ -56,6 +58,14 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
 
     "return an empty list when no unregistered tokens are available" in new Setup {
       when(connector.getUnregisteredTokens()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Move along!", 404)))
+
+      val result = await(service.getUnregisteredTokens)
+
+      result.size shouldBe 0
+    }
+
+    "return an empty list when the push registration service is not available" in new Setup {
+      when(connector.getUnregisteredTokens()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Failed to acquire lock", 503)))
 
       val result = await(service.getUnregisteredTokens)
 

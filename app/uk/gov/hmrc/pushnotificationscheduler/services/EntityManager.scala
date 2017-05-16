@@ -24,15 +24,19 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait EntityManager {
   val entities: String = "data"
+  val logger: Logger
 
   def fetch[T](func: => Future[Seq[T]])(implicit ec: ExecutionContext): Future[Seq[T]] = {
     func recover {
       case e: HttpException if e.responseCode == 404 =>
-        Logger.info(s"No $entities found")
-        Seq.empty
+        logger.info(s"No $entities found")
+        Seq.empty[T]
+      case e: HttpException if e.responseCode == 503 =>
+        logger.warn(s"$entities service temporarily not available")
+        Seq.empty[T]
       case e: Throwable =>
-        Logger.error(s"Failed to fetch $entities: ${e.getMessage}", e)
-        Seq.empty
+        logger.error(s"Failed to fetch $entities: ${e.getMessage}", e)
+        Seq.empty[T]
     }
   }
 
@@ -41,11 +45,11 @@ trait EntityManager {
       case _: Success =>
         Future.successful(Unit)
       case _ =>
-        Logger.error(s"Failed to update $entities, status = ${r.status}")
+        logger.error(s"Failed to update $entities, status = ${r.status}")
         Future.failed(new HttpException(s"Failed to update $entities", r.status))
     }}.recover {
       case e: Throwable =>
-        Logger.error(s"Failed to update $entities: ${e.getMessage}")
+        logger.error(s"Failed to update $entities: ${e.getMessage}", e)
         Future.failed(e)
     }
   }

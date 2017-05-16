@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.services
 
-import org.mockito.ArgumentMatchers.{any, anyInt}
-import org.mockito.Mockito.when
-import org.mockito.{ArgumentCaptor, Mockito}
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{verify, when}
+import org.mockito.ArgumentCaptor
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
+import play.api.Logger
 import uk.gov.hmrc.play.http.{HttpException, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.connectors.{Error, PushNotificationConnector, Success}
@@ -35,8 +36,9 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
 
   private trait Setup extends MockitoSugar {
     val connector = mock[PushNotificationConnector]
+    val logger = mock[Logger]
 
-    val service = new PushNotificationService(connector)
+    val service = new PushNotificationService(connector, logger)
 
     val someNotificationWithoutMessageId = Notification("msg-1", "end:point:a", "Twas brillig, and the slithy toves", None, "windows")
     val otherNotificationWithMessageId = Notification("msg-2", "end:point:b", "Did gyre and gimble in the wabe", Some("1"), "windows")
@@ -51,6 +53,10 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
 
   private trait NotFound extends Setup {
     when(connector.getUnsentNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("there's nothing for you here", 404)))
+  }
+
+  private trait Unavailable extends Setup {
+    when(connector.getUnsentNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("unable to acquire lock", 503)))
   }
 
   private trait BadRequest extends Setup {
@@ -73,14 +79,21 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
       result(1) shouldBe otherNotificationWithMessageId
     }
 
-    "return an empty list when no unsent messages are available" in new NotFound {
+    "return an empty list and log a message when no unsent notifications are available" in new NotFound {
 
       val result = await(service.getUnsentNotifications)
 
       result.size shouldBe 0
     }
 
-    "return an empty list when the push registration service fails" in new Failed {
+    "return an empty list and log a message when the push notification service is temporarily unavailable" in new Unavailable {
+
+      val result = await(service.getUnsentNotifications)
+
+      result.size shouldBe 0
+    }
+
+    "return an empty list and log a message when the push notification service fails" in new Failed {
 
       val result = await(service.getUnsentNotifications)
 
@@ -94,7 +107,7 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
       val result = await(service.updateNotifications(someStatuses))
 
       val captor: ArgumentCaptor[Map[String,NotificationStatus]] = ArgumentCaptor.forClass(classOf[Map[String,NotificationStatus]])
-      Mockito.verify(connector).updateNotifications(captor.capture())(any[ExecutionContext]())
+      verify(connector).updateNotifications(captor.capture())(any[ExecutionContext]())
 
       captor.getValue shouldBe someStatuses
 
