@@ -148,6 +148,4 @@ abstract class SchedulerServiceISpec(testName: String, services: Seq[ExternalSer
       (authHeader, authInternalId)
     }
 
-//  }
-
 }
