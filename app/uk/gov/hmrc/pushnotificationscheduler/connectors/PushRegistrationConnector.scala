@@ -38,6 +38,7 @@ trait PushRegistrationConnectorApi extends GenericConnector with ServicesConfig 
     get[Seq[RegistrationToken]]("/push/endpoint", List(("mode", "recover")))
   }
 
+// TODO...the update must contain the InternalAuthId associated with the token.
   def registerEndpoints(tokenToEndpointMap: Map[String,Option[String]])(implicit ex: ExecutionContext): Future[Response] = {
     post[Map[String, Option[String]]]("/push/endpoint", tokenToEndpointMap)
   }

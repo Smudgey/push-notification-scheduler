@@ -26,6 +26,7 @@ object MicroServiceBuild extends Build with MicroService {
   )
 
   def test(scope: String = "test,it") = Seq(
+    ws excludeAll ExclusionRule("org.apache.httpcomponents"),
     "uk.gov.hmrc" %% "hmrctest" % "2.3.0" % scope,
     "org.scalatest" %% "scalatest" % "2.2.6" % scope,
     "org.pegdown" % "pegdown" % "1.6.0" % scope,
