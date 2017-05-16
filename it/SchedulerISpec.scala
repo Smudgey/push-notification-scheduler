@@ -1,7 +1,7 @@
 
 import org.scalatest.LoneElement
 import org.scalatest.concurrent.Eventually
-import org.scalatest.concurrent.PatienceConfiguration.Timeout
+import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
 import org.scalatest.time.{Seconds, Span}
 import play.api.libs.json._
 
@@ -18,10 +18,10 @@ object Template {
 
 class SchedulerISpec extends SchedulerServiceISpec(testName = classOf[SchedulerISpec].getSimpleName, Seq(), Map.empty) with LoneElement with Eventually {
 
-  trait NotificationTest extends TestCase {
+  trait NotificationTest {
 
     def notificationTestLifeCycle(testData:Seq[TestNotification]) = {
-      
+
       // Part 1: Register devices associated with users.
       testData.foreach { test =>
         test.devices.foreach { device =>
@@ -36,7 +36,7 @@ class SchedulerISpec extends SchedulerServiceISpec(testName = classOf[SchedulerI
       testData.foreach { test =>
         test.devices.foreach { device =>
 
-          eventually(Timeout(Span(60, Seconds))) {
+          eventually(Timeout(Span(60, Seconds)), Interval(Span(2, Seconds))) {
             // Verify SNS-stub sending the request to exchange token for ARN.
             val resp = s"""{"CreatePlatformEndpoint":{"applicationArn":"default-platform-arn","registrationToken":"${device.id}"}}"""
             `/aws-sns-stub/messages/:token`(s"${device.id}").get() should have(body(resp))
@@ -56,9 +56,9 @@ class SchedulerISpec extends SchedulerServiceISpec(testName = classOf[SchedulerI
         `/push-notification/message`(test.authHeaders).post(Json.toJson(template)) should have(status(201))
       }
 
-      // Part 4: Verify messages sent to SNS to the correct user and push-notification state for message
+      // Part 4: Verify messages sent to SNS are correct concerning user Id and push-notification state for message
       // has been updated to delivered.
-      eventually(Timeout(Span(60, Seconds))) {
+      eventually(Timeout(Span(60, Seconds)), Interval(Span(2, Seconds))) {
 
         testData.foreach { test =>
           test.devices.foreach { device =>
@@ -88,16 +88,12 @@ class SchedulerISpec extends SchedulerServiceISpec(testName = classOf[SchedulerI
 
       val testData: Seq[TestNotification] = createTestNotifications(2, 3, uniqueDevices = true)
 
-      resetMongoRepositories
-
       notificationTestLifeCycle(testData)
     }
 
     "successfully send notification only messages to devices where all devices share the same name across users" in new NotificationTest {
 
       val testData: Seq[TestNotification] = createTestNotifications(2, 3, uniqueDevices = false)
-
-      resetMongoRepositories
 
       notificationTestLifeCycle(testData)
     }

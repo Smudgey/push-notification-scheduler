@@ -33,8 +33,7 @@ object MicroServiceBuild extends Build with MicroService {
     "org.mockito" % "mockito-core" % "2.7.14" % scope,
     "com.typesafe.akka" %% "akka-testkit" % "2.3.14" % scope,
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-    "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % scope,
-    "uk.gov.hmrc" %% "auth-test" % "4.1.0"  % scope
+    "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % scope
   )
 
 }
