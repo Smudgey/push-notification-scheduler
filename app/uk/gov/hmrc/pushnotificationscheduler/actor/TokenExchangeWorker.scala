@@ -24,23 +24,21 @@ import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services.{PushRegistrationService, SnsClientService}
 
 import scala.concurrent.Future
-import scala.util.Failure
 
 class TokenExchangeWorker(master: ActorRef, snsClientService: SnsClientService, pushRegistrationService: PushRegistrationService, metrics: Metrics) extends Worker[Batch[RegistrationToken]](master) {
   override def doWork(work: Batch[RegistrationToken]): Future[_] = {
 
     snsClientService.exchangeTokens(work).map { (tokenToEndpointMap: Map[String, Option[String]]) =>
-      pushRegistrationService.registerEndpoints(tokenToEndpointMap)
-        .onComplete {
-          case Failure(e) =>
-            Logger.error(s"Failed to register endpoints: ${e.getMessage}")
-            metrics.incrementTokenExchangeFailure(work.size)
-            Future.failed(e)
-          case _ =>
-            metrics.incrementTokenExchangeSuccess(tokenToEndpointMap.values.count(_.isDefined))
-            metrics.incrementTokenDisabled(tokenToEndpointMap.values.count(_.isEmpty))
-            Future.successful(Unit)
+      pushRegistrationService.registerEndpoints(tokenToEndpointMap).map { _ =>
+          metrics.incrementTokenExchangeSuccess(tokenToEndpointMap.values.count(_.isDefined))
+          metrics.incrementTokenDisabled(tokenToEndpointMap.values.count(_.isEmpty))
+        }.recover { case e =>
+            Logger.error(s"Failed to update endpoints: ${e.getMessage}")
+            metrics.incrementTokenUpdateFailure(work.size)
         }
+    }.recover { case e =>
+      Logger.error(s"Failed to exchange tokens: ${e.getMessage}")
+      metrics.incrementTokenExchangeFailure(work.size)
     }
   }
 }
