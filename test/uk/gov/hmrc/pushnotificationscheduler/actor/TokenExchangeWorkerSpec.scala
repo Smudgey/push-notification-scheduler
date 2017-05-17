@@ -57,7 +57,8 @@ class TokenExchangeWorkerSpec extends UnitSpec with MockitoSugar {
     "exchange registration tokens for endpoints" in new Setup {
       val tokens = List(RegistrationToken("foo", Android), RegistrationToken("bar", Windows), RegistrationToken("baz", iOS))
       val moreTokens = List(RegistrationToken("quux", iOS), RegistrationToken("grault", Android))
-      val unregisteredTokens = List(tokens, moreTokens)
+      val evenMoreTokens = List(RegistrationToken("froog", iOS))
+      val unregisteredTokens = List(tokens, moreTokens, evenMoreTokens)
 
       val endpoints = Map("foo" -> Some("bish"), "bar" -> Some("bash"), "baz" -> None)
       val moreEndpoints = Map("quux" -> Some("bosh"), "grault" -> None)
@@ -66,13 +67,14 @@ class TokenExchangeWorkerSpec extends UnitSpec with MockitoSugar {
 
       when(mockSnsClient.exchangeTokens(ArgumentMatchers.eq(tokens))).thenReturn(Future.successful(endpoints))
       when(mockSnsClient.exchangeTokens(ArgumentMatchers.eq(moreTokens))).thenReturn(Future.successful(moreEndpoints))
+      when(mockSnsClient.exchangeTokens(ArgumentMatchers.eq(evenMoreTokens))).thenReturn(Future.failed(new HttpException("Wibble", 500)))
 
       when(mockPushRegistration.registerEndpoints(ArgumentMatchers.eq(endpoints))).thenAnswer(new UpdateSuccess)
       when(mockPushRegistration.registerEndpoints(ArgumentMatchers.eq(moreEndpoints))).thenReturn(Future.failed(new HttpException("Wobble", 500)))
 
       await(master ? epic)
 
-      verify(mockSnsClient, times(2)).exchangeTokens(tokenCaptor.capture())
+      verify(mockSnsClient, times(unregisteredTokens.size)).exchangeTokens(tokenCaptor.capture())
 
       val firstInvocation: Seq[RegistrationToken] = tokenCaptor.getAllValues.get(0)
       val secondInvocation: Seq[RegistrationToken] = tokenCaptor.getAllValues.get(1)
@@ -82,7 +84,8 @@ class TokenExchangeWorkerSpec extends UnitSpec with MockitoSugar {
 
       verify(mockMetrics).incrementTokenExchangeSuccess(ArgumentMatchers.eq(2L))
       verify(mockMetrics).incrementTokenDisabled(ArgumentMatchers.eq(1L))
-      verify(mockMetrics).incrementTokenExchangeFailure(ArgumentMatchers.eq(2L))
+      verify(mockMetrics).incrementTokenUpdateFailure(ArgumentMatchers.eq(2L))
+      verify(mockMetrics).incrementTokenExchangeFailure(ArgumentMatchers.eq(1L))
     }
   }
 }

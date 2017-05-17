@@ -65,7 +65,10 @@ class NotificationSendWorkerSpec extends UnitSpec with MockitoSugar {
       Notification("msg-7", "end:point:d", "Until he was seen by some men one day", None, "windows"),
       Notification("msg-8", "end:point:d", "And they resolved to catch him without delay", Some("4"), "windows")
     )
-    val unsentNotifications = List(someNotifications, moreNotifications, evenMoreNotifications)
+    val yetMoreNotifications = List(
+      Notification("msg-9", "end:point:e", "Oh! it was a most fearful and beautiful sight", None, "windows")
+    )
+    val unsentNotifications = List(someNotifications, moreNotifications, evenMoreNotifications, yetMoreNotifications)
 
     val someDeliveryStatuses = Map("msg-1" -> Success, "msg-2" -> Success, "msg-3" -> Failed, "msg-4" -> Success)
     val moreDeliveryStatuses = Map("msg-5" -> Success, "msg-6" -> Failed)
@@ -80,6 +83,7 @@ class NotificationSendWorkerSpec extends UnitSpec with MockitoSugar {
     when(mockSnsClient.sendNotifications(ArgumentMatchers.eq(someNotifications))).thenReturn(Future.successful(someDeliveryStatuses))
     when(mockSnsClient.sendNotifications(ArgumentMatchers.eq(moreNotifications))).thenReturn(Future.successful(moreDeliveryStatuses))
     when(mockSnsClient.sendNotifications(ArgumentMatchers.eq(evenMoreNotifications))).thenReturn(Future.successful(evenMoreDeliveryStatuses))
+    when(mockSnsClient.sendNotifications(ArgumentMatchers.eq(yetMoreNotifications))).thenReturn(Future.failed(new HttpException("Wubble", 500)))
 
     when(mockPushNotification.updateNotifications(ArgumentMatchers.eq(someNotificationStatuses))).thenAnswer(new UpdateSuccess)
     when(mockPushNotification.updateNotifications(ArgumentMatchers.eq(moreNotificationStatuses))).thenReturn(Future.failed(new HttpException("Wibble", 500)))
@@ -91,7 +95,7 @@ class NotificationSendWorkerSpec extends UnitSpec with MockitoSugar {
 
       await(master ? epic)
 
-      verify(mockSnsClient, times(3)).sendNotifications(notificationCaptor.capture())
+      verify(mockSnsClient, times(unsentNotifications.size)).sendNotifications(notificationCaptor.capture())
 
       val firstInvocation: Seq[Notification] = notificationCaptor.getAllValues.get(0)
       val secondInvocation: Seq[Notification] = notificationCaptor.getAllValues.get(1)
@@ -102,7 +106,8 @@ class NotificationSendWorkerSpec extends UnitSpec with MockitoSugar {
       verify(mockMetrics).incrementNotificationDelivered(ArgumentMatchers.eq(3L))
       verify(mockMetrics).incrementNotificationDisabled(ArgumentMatchers.eq(2L))
       verify(mockMetrics).incrementNotificationRequeued(ArgumentMatchers.eq(1L))
-      verify(mockMetrics).incrementNotificationSendFailure(ArgumentMatchers.eq(2L))
+      verify(mockMetrics).incrementNotificationUpdateFailure(ArgumentMatchers.eq(2L))
+      verify(mockMetrics).incrementNotificationSendFailure(ArgumentMatchers.eq(1L))
     }
   }
 }
