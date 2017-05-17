@@ -31,11 +31,11 @@ trait PushRegistrationConnectorApi extends GenericConnector with ServicesConfig 
   override val externalServiceName: String = "push-registration"
 
   def getUnregisteredTokens()(implicit ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
-    get[Seq[RegistrationToken]]("/push/endpoint", List.empty[(String,String)])
+    get[Seq[RegistrationToken]]("/push/endpoint/incomplete", List.empty[(String,String)])
   }
 
   def recoverFailedRegistrations()(implicit ex: ExecutionContext): Future[Seq[RegistrationToken]] = {
-    get[Seq[RegistrationToken]]("/push/endpoint", List(("mode", "recover")))
+    get[Seq[RegistrationToken]]("/push/endpoint/timedout", List.empty[(String,String)])
   }
 
 // TODO...the update must contain the InternalAuthId associated with the token.

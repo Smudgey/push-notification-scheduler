@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
-import org.mockito.ArgumentMatcher
+import org.mockito.{ArgumentMatcher, ArgumentMatchers}
 import org.mockito.ArgumentMatchers.{any, argThat, matches}
 import org.mockito.Mockito.doReturn
 import org.scalatest.concurrent.ScalaFutures
@@ -51,18 +51,18 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithTestApplication wi
   }
 
   private trait Success extends Setup {
-    doReturn(successful(unregisteredTokens), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), any[Seq[(String,String)]]())(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
-    doReturn(successful(previouslyFailedTokens), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsTuple[String, String]("mode", "recover")))(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
+    doReturn(successful(unregisteredTokens), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint/incomplete"), any[Seq[(String,String)]]())(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
+    doReturn(successful(previouslyFailedTokens), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint/timedout"), any[Seq[(String,String)]]())(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
     doReturn(successful(HttpResponse(200, None)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("snap")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
   }
 
   private trait BadRequest extends Setup {
-    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), any[Seq[(String,String)]]())(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
+    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](ArgumentMatchers.startsWith(s"${connector.serviceUrl}/push/endpoint/"), any[Seq[(String,String)]]())(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
     doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("bad")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
   }
 
   private trait UpstreamFailure extends Setup {
-    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](matches(s"${connector.serviceUrl}/push/endpoint"), any[Seq[(String,String)]]())(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
+    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[RegistrationToken]](ArgumentMatchers.startsWith(s"${connector.serviceUrl}/push/endpoint/"), any[Seq[(String,String)]]())(any[HttpReads[Seq[RegistrationToken]]](), any[HeaderCarrier]())
     doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(s"${connector.serviceUrl}/push/endpoint"), argThat(containsKey[String, String]("broken")), any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
   }
 
@@ -121,10 +121,6 @@ class PushRegistrationConnectorSpec extends UnitSpec with WithTestApplication wi
       }
     }
   }
-}
-
-case class containsTuple[A, B](t1: A, t2: B) extends ArgumentMatcher[Seq[(A, B)]] {
-  override def matches(argument: Seq[(A, B)]): Boolean = argument.contains((t1, t2))
 }
 
 case class containsKey[A, B](key: A) extends ArgumentMatcher[Map[A,B]] {
