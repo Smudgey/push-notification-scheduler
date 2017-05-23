@@ -18,7 +18,7 @@ package uk.gov.hmrc.pushnotificationscheduler.dispatchers
 
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{reset, times, when}
 import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.mock.MockitoSugar
@@ -31,7 +31,7 @@ import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationS
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services.{PushNotificationService, SnsClientService}
 
-import scala.concurrent.Future.successful
+import scala.concurrent.Future.{failed, successful}
 
 class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with MockitoSugar with OneAppPerSuite {
   val mockMetrics = mock[Metrics]
@@ -63,6 +63,8 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
 
   "scheduling the Notification dispatcher" should {
     "process unsent notifications" in new Setup {
+      reset(mockSnsClient)
+
       when(mockPushNotification.getUnsentNotifications).thenReturn(successful(unsentNotifications))
       when(mockPushNotification.updateNotifications(ArgumentMatchers.any[Map[String, NotificationStatus]]())).thenAnswer(new UpdateSuccess)
       when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]]())).thenReturn(successful(deliveryStatuses))
@@ -82,11 +84,16 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
     }
 
     "do nothing when there are no unsent notification" in new Setup {
+      reset(mockSnsClient)
+
       when(mockPushNotification.getUnsentNotifications).thenReturn(successful(Seq.empty))
+      when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]]())).thenReturn(failed(new Exception("should not be called")))
 
       await(dispatcher.processNotifications())
 
-      Mockito.verifyZeroInteractions(mockSnsClient)
+      Eventually.eventually(
+        Mockito.verify(mockSnsClient, times(0)).sendNotifications(ArgumentMatchers.any[Seq[Notification]]())
+      )
     }
   }
 }
