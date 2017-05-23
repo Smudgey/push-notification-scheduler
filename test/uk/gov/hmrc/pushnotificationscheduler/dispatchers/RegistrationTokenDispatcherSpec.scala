@@ -18,7 +18,7 @@ package uk.gov.hmrc.pushnotificationscheduler.dispatchers
 
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{reset, times, when}
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
@@ -32,7 +32,7 @@ import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services.{PushRegistrationService, SnsClientService}
 
 import scala.concurrent.Future
-import scala.concurrent.Future.successful
+import scala.concurrent.Future.{failed, successful}
 
 class RegistrationTokenDispatcherSpec extends UnitSpec with ScalaFutures with MockitoSugar with OneAppPerSuite {
   val mockMetrics = mock[Metrics]
@@ -51,6 +51,8 @@ class RegistrationTokenDispatcherSpec extends UnitSpec with ScalaFutures with Mo
 
   "scheduling the RegistrationToken dispatcher" should {
     "exchange unregistered tokens for endpoints" in new Setup {
+      reset(mockSnsClient)
+
       when(mockPushRegistration.getUnregisteredTokens).thenReturn(successful(unregisteredTokens))
       when(mockPushRegistration.recoverFailedRegistrations).thenReturn(successful(Seq.empty))
       when(mockPushRegistration.registerEndpoints(ArgumentMatchers.any[Map[String, Option[String]]]())).thenAnswer(new Answer[Future[_]] {
@@ -73,12 +75,15 @@ class RegistrationTokenDispatcherSpec extends UnitSpec with ScalaFutures with Mo
     }
 
     "do nothing when there are no unregistered endpoints" in new Setup {
+      reset(mockSnsClient)
+
       when(mockPushRegistration.getUnregisteredTokens).thenReturn(successful(Seq.empty))
       when(mockPushRegistration.recoverFailedRegistrations).thenReturn(successful(Seq.empty))
+      when(mockSnsClient.exchangeTokens(ArgumentMatchers.any[Seq[RegistrationToken]]())).thenReturn(failed(new Exception("should not be called")))
 
       await(dispatcher.exchangeRegistrationTokensForEndpoints())
 
-      Mockito.verifyZeroInteractions(mockSnsClient)
+      Mockito.verify(mockSnsClient, times(0)).exchangeTokens(ArgumentMatchers.any[Seq[RegistrationToken]]())
     }
   }
 }
