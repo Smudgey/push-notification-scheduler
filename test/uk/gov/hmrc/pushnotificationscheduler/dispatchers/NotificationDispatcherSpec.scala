@@ -42,11 +42,12 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
   val mapCaptor = ArgumentCaptor.forClass(classOf[Map[String, NotificationStatus]])
 
   private abstract class Setup extends TestKit(ActorSystem("AkkaTestSystem")) {
-    val unsentNotifications = List(
+    val queuedNotifications = List(
       Notification("msg-100", "end:point:a", "I wandered lonely as a cloud", Some("1"), "windows"),
-      Notification("msg-101", "end:point:a", "That floats on high o'er vales and hills,", Some("1"), "windows"),
       Notification("msg-102", "end:point:b", "When all at once I saw a crowd", Some("1"), "windows"),
       Notification("msg-103", "end:point:c", "A host, of golden daffodils", Some("1"), "windows"))
+    val timedOutNotifications = List(
+      Notification("msg-101", "end:point:a", "That floats on high o'er vales and hills,", Some("1"), "windows"))
     val deliveryStatuses = Map(
       "msg-100" -> Success,
       "msg-101" -> Success,
@@ -62,10 +63,11 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
   }
 
   "scheduling the Notification dispatcher" should {
-    "process unsent notifications" in new Setup {
+    "process queued and timed-out notifications" in new Setup {
       reset(mockSnsClient)
 
-      when(mockPushNotification.getQueuedNotifications).thenReturn(successful(unsentNotifications))
+      when(mockPushNotification.getQueuedNotifications).thenReturn(successful(queuedNotifications))
+      when(mockPushNotification.getTimedOutNotifications).thenReturn(successful(timedOutNotifications))
       when(mockPushNotification.updateNotifications(ArgumentMatchers.any[Map[String, NotificationStatus]]())).thenAnswer(new UpdateSuccess)
       when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]]())).thenReturn(successful(deliveryStatuses))
 
@@ -78,15 +80,16 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
         val actualNotifications: Seq[Notification] = notificationCaptor.getValue
         val actualMap: Map[String, NotificationStatus] = mapCaptor.getValue
 
-        actualNotifications shouldBe unsentNotifications
+        actualNotifications shouldBe queuedNotifications ::: timedOutNotifications
         actualMap shouldBe notificationStatuses
       }
     }
 
-    "do nothing when there are no unsent notification" in new Setup {
+    "do nothing when there are no queued or timed-out notification" in new Setup {
       reset(mockSnsClient)
 
       when(mockPushNotification.getQueuedNotifications).thenReturn(successful(Seq.empty))
+      when(mockPushNotification.getTimedOutNotifications).thenReturn(successful(Seq.empty))
       when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]]())).thenReturn(failed(new Exception("should not be called")))
 
       await(dispatcher.processNotifications())

@@ -43,7 +43,8 @@ class RegistrationTokenDispatcherSpec extends UnitSpec with ScalaFutures with Mo
   val mapCaptor = ArgumentCaptor.forClass(classOf[Map[String, Option[String]]])
 
   private abstract class Setup extends TestKit(ActorSystem("AkkaTestSystem")) {
-    val unregisteredTokens = List(RegistrationToken("foo", Android), RegistrationToken("bar", Windows), RegistrationToken("baz", iOS))
+    val unregisteredTokens = List(RegistrationToken("foo", Android), RegistrationToken("bar", Windows))
+    val failedTokens = List(RegistrationToken("baz", iOS))
     val endpoints = Map("foo" -> Some("blip"), "bar" -> None, "baz" -> Some("blop"))
 
     val dispatcher = new RegistrationTokenDispatcher(4, mockSnsClient, mockPushRegistration, system, mockMetrics)
@@ -54,7 +55,7 @@ class RegistrationTokenDispatcherSpec extends UnitSpec with ScalaFutures with Mo
       reset(mockSnsClient)
 
       when(mockPushRegistration.getUnregisteredTokens).thenReturn(successful(unregisteredTokens))
-      when(mockPushRegistration.recoverFailedRegistrations).thenReturn(successful(Seq.empty))
+      when(mockPushRegistration.recoverFailedRegistrations).thenReturn(successful(failedTokens))
       when(mockPushRegistration.registerEndpoints(ArgumentMatchers.any[Map[String, Option[String]]]())).thenAnswer(new Answer[Future[_]] {
         override def answer(invocationOnMock: InvocationOnMock): Future[_] = Future.successful(Unit)
       })
@@ -69,7 +70,7 @@ class RegistrationTokenDispatcherSpec extends UnitSpec with ScalaFutures with Mo
         val actualTokens: Seq[RegistrationToken] = tokenCaptor.getValue
         val acutalMap: Map[String, Option[String]] = mapCaptor.getValue
 
-        actualTokens shouldBe unregisteredTokens
+        actualTokens shouldBe unregisteredTokens ::: failedTokens
         acutalMap shouldBe endpoints
       }
     }
