@@ -53,7 +53,7 @@ class NotificationDispatcher @Inject()(@Named("notificationDispatcherCount") not
 
   override def processNotifications(): Future[Unit] = {
     for {
-      notDelivered <- pushNotificationService.getUnsentNotifications
+      notDelivered <- pushNotificationService.getQueuedNotifications
       work: List[Batch[Notification]] <- Future.successful{ if (notDelivered.nonEmpty) List(notDelivered) else List.empty }
       _ <- gangMaster ? Epic[Batch[Notification]](work)
     } yield ()

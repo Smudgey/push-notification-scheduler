@@ -48,15 +48,18 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
 
   private trait Success extends Setup {
     when(connector.getQueuedNotifications()(any[ExecutionContext]())).thenReturn(Future.successful(Seq(someNotificationWithoutMessageId, otherNotificationWithMessageId)))
+    when(connector.getTimedOutNotifications()(any[ExecutionContext]())).thenReturn(Future.successful(Seq(otherNotificationWithMessageId, someNotificationWithoutMessageId)))
     when(connector.updateNotifications(any[Map[String,NotificationStatus]])(any[ExecutionContext]())).thenReturn(Future.successful(Success(200)))
   }
 
   private trait NotFound extends Setup {
     when(connector.getQueuedNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("there's nothing for you here", 404)))
+    when(connector.getTimedOutNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("there's still nothing here", 404)))
   }
 
   private trait Unavailable extends Setup {
     when(connector.getQueuedNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("unable to acquire lock", 503)))
+    when(connector.getTimedOutNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("unable to acquire lock", 503)))
   }
 
   private trait BadRequest extends Setup {
@@ -65,37 +68,71 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
 
   private trait Failed extends Setup {
     when(connector.getQueuedNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+    when(connector.getTimedOutNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Bash!", 500, 500)))
     when(connector.updateNotifications(any[Map[String,NotificationStatus]])(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
   }
 
-  "PushNotificationServiceSpec getUnsentNotifications" should {
+  "PushNotificationServiceSpec getQueuedNotifications" should {
 
-    "return unsent notifications when unsent notifications are available" in new Success {
+    "return queued notifications when unsent notifications are available" in new Success {
 
-      val result = await(service.getUnsentNotifications)
+      val result = await(service.getQueuedNotifications)
 
       result.size shouldBe 2
       result.head shouldBe someNotificationWithoutMessageId
       result(1) shouldBe otherNotificationWithMessageId
     }
 
-    "return an empty list and log a message when no unsent notifications are available" in new NotFound {
+    "return an empty list and log a message when no queued notifications are available" in new NotFound {
 
-      val result = await(service.getUnsentNotifications)
+      val result = await(service.getQueuedNotifications)
 
       result.size shouldBe 0
     }
 
     "return an empty list and log a message when the push notification service is temporarily unavailable" in new Unavailable {
 
-      val result = await(service.getUnsentNotifications)
+      val result = await(service.getQueuedNotifications)
 
       result.size shouldBe 0
     }
 
     "return an empty list and log a message when the push notification service fails" in new Failed {
 
-      val result = await(service.getUnsentNotifications)
+      val result = await(service.getQueuedNotifications)
+
+      result.size shouldBe 0
+    }
+  }
+
+  "PushNotificationServiceSpec getTimedOutNotifications" should {
+
+    "return timed-out notifications when such notifications are available" in new Success {
+
+      val result = await(service.getTimedOutNotifications)
+
+      result.size shouldBe 2
+      result.head shouldBe otherNotificationWithMessageId
+      result(1) shouldBe someNotificationWithoutMessageId
+    }
+
+    "return an empty list and log a message when no timed-out notifications are available" in new NotFound {
+
+      val result = await(service.getTimedOutNotifications)
+
+      result.size shouldBe 0
+    }
+
+    "return an empty list and log a message when the push notification service is temporarily unavailable" in new Unavailable {
+
+      val result = await(service.getTimedOutNotifications)
+
+      result.size shouldBe 0
+    }
+
+    "return an empty list and log a message when the push notification service fails" in new Failed {
+
+      val result = await(service.getTimedOutNotifications)
 
       result.size shouldBe 0
     }

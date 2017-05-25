@@ -65,7 +65,7 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
     "process unsent notifications" in new Setup {
       reset(mockSnsClient)
 
-      when(mockPushNotification.getUnsentNotifications).thenReturn(successful(unsentNotifications))
+      when(mockPushNotification.getQueuedNotifications).thenReturn(successful(unsentNotifications))
       when(mockPushNotification.updateNotifications(ArgumentMatchers.any[Map[String, NotificationStatus]]())).thenAnswer(new UpdateSuccess)
       when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]]())).thenReturn(successful(deliveryStatuses))
 
@@ -86,7 +86,7 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
     "do nothing when there are no unsent notification" in new Setup {
       reset(mockSnsClient)
 
-      when(mockPushNotification.getUnsentNotifications).thenReturn(successful(Seq.empty))
+      when(mockPushNotification.getQueuedNotifications).thenReturn(successful(Seq.empty))
       when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]]())).thenReturn(failed(new Exception("should not be called")))
 
       await(dispatcher.processNotifications())
