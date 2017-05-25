@@ -36,7 +36,7 @@ trait PushNotificationServiceApi extends EntityManager {
 
 @Singleton
 class PushNotificationService @Inject() (connector: PushNotificationConnectorApi, override val logger: Logger) extends PushNotificationServiceApi {
-  override def getUnsentNotifications: Future[Seq[Notification]] = fetch[Notification](connector.getUnsentNotifications())
+  override def getUnsentNotifications: Future[Seq[Notification]] = fetch[Notification](connector.getQueuedNotifications())
 
   override def updateNotifications(notificationStatus: Map[String, NotificationStatus]): Future[_] =
     update(connector.updateNotifications(notificationStatus))
