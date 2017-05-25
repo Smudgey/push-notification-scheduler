@@ -42,30 +42,31 @@ class PushNotificationConnectorSpec extends UnitSpec with WithTestApplication wi
     val someNotificationWithoutAMessageId = Notification("msg-1", "end:point:1", "hello world", None, "windows")
     val otherNotificationWithAMessageId = Notification("msg-2", "end:point:2", "goodbye", Some("1"), "windows")
 
-    val unsentNotifications = Seq(someNotificationWithoutAMessageId, otherNotificationWithAMessageId)
-
     val someStatus = Map("msg-1" -> Delivered, "msg-2" -> Queued)
   }
 
   private trait Success extends Setup {
-    doReturn(successful(unsentNotifications), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/unsent"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
+    doReturn(successful(Seq(someNotificationWithoutAMessageId, otherNotificationWithAMessageId)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/unsent"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
+    doReturn(successful(Seq(otherNotificationWithAMessageId, someNotificationWithoutAMessageId)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/timedout"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
     doReturn(successful(HttpResponse(204, None)), Nil: _*).when(mockHttp).POST[Map[String, NotificationStatus], HttpResponse](matches(s"${connector.serviceUrl}/notifications/status"), any[Map[String, NotificationStatus]](), any[Seq[(String, String)]])(any[Writes[Map[String, NotificationStatus]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
 
   }
 
   private trait BadRequest extends Setup {
     doReturn(failed(new BadRequestException("SPLAT!")), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/unsent"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
+    doReturn(failed(new BadRequestException("CRACK!")), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/timedout"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
     doReturn(failed(new BadRequestException("CRASH!")), Nil: _*).when(mockHttp).POST[Map[String, NotificationStatus], HttpResponse](matches(s"${connector.serviceUrl}/notifications/status"), any[Map[String, NotificationStatus]](), any[Seq[(String, String)]])(any[Writes[Map[String, NotificationStatus]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
   }
 
   private trait UpstreamFailure extends Setup {
     doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/unsent"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
+    doReturn(failed(Upstream5xxResponse("BLAM!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/timedout"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
     doReturn(failed(Upstream5xxResponse("BOOM!", 500, 500)), Nil: _*).when(mockHttp).POST[Map[String, NotificationStatus], HttpResponse](matches(s"${connector.serviceUrl}/notifications/status"), any[Map[String, NotificationStatus]](), any[Seq[(String, String)]])(any[Writes[Map[String, NotificationStatus]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
   }
 
-  "getUnsentNotifications" should {
-    "return unsent notifications when a 200 response is received with a valid json payload" in new Success {
-      val result: Seq[Notification] = await(connector.getUnsentNotifications())
+  "getQueuedNotifications" should {
+    "return queued notifications when a 200 response is received with a valid json payload" in new Success {
+      val result: Seq[Notification] = await(connector.getQueuedNotifications())
 
       result.size shouldBe 2
       result.head shouldBe someNotificationWithoutAMessageId
@@ -74,13 +75,35 @@ class PushNotificationConnectorSpec extends UnitSpec with WithTestApplication wi
 
     "throw BadRequestException when a 400 response is returned" in new BadRequest {
       intercept[BadRequestException] {
-        await(connector.getUnsentNotifications())
+        await(connector.getQueuedNotifications())
       }
     }
 
     "throw Upstream5xxResponse when a 500 response is returned" in new UpstreamFailure {
       intercept[Upstream5xxResponse] {
-        await(connector.getUnsentNotifications())
+        await(connector.getQueuedNotifications())
+      }
+    }
+  }
+
+  "getTimedOutNotifications" should {
+    "return timed-out notifications when a 200 response is received with a valid json payload" in new Success {
+      val result: Seq[Notification] = await(connector.getTimedOutNotifications())
+
+      result.size shouldBe 2
+      result.head shouldBe otherNotificationWithAMessageId
+      result(1) shouldBe someNotificationWithoutAMessageId
+    }
+
+    "throw BadRequestException when a 400 response is returned" in new BadRequest {
+      intercept[BadRequestException] {
+        await(connector.getTimedOutNotifications())
+      }
+    }
+
+    "throw Upstream5xxResponse when a 500 response is returned" in new UpstreamFailure {
+      intercept[Upstream5xxResponse] {
+        await(connector.getTimedOutNotifications())
       }
     }
   }

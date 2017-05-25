@@ -30,13 +30,16 @@ import scala.concurrent.Future
 trait PushNotificationServiceApi extends EntityManager {
   override val entities = "push notifications"
 
-  def getUnsentNotifications: Future[Seq[Notification]]
+  def getQueuedNotifications: Future[Seq[Notification]]
+  def getTimedOutNotifications: Future[Seq[Notification]]
   def updateNotifications(notificationStatus: Map[String,NotificationStatus]): Future[_]
 }
 
 @Singleton
 class PushNotificationService @Inject() (connector: PushNotificationConnectorApi, override val logger: Logger) extends PushNotificationServiceApi {
-  override def getUnsentNotifications: Future[Seq[Notification]] = fetch[Notification](connector.getUnsentNotifications())
+  override def getQueuedNotifications: Future[Seq[Notification]] = fetch[Notification](connector.getQueuedNotifications())
+
+  override def getTimedOutNotifications: Future[Seq[Notification]] = fetch[Notification](connector.getTimedOutNotifications())
 
   override def updateNotifications(notificationStatus: Map[String, NotificationStatus]): Future[_] =
     update(connector.updateNotifications(notificationStatus))

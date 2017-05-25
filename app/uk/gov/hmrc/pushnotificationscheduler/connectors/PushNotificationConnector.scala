@@ -28,14 +28,19 @@ import scala.concurrent.{ExecutionContext, Future}
 trait PushNotificationConnectorApi extends GenericConnector {
   override val externalServiceName: String = "push-notification"
 
-  def getUnsentNotifications()(implicit ex: ExecutionContext): Future[Seq[Notification]]
+  def getQueuedNotifications()(implicit ex: ExecutionContext): Future[Seq[Notification]]
+  def getTimedOutNotifications()(implicit ex: ExecutionContext): Future[Seq[Notification]]
   def updateNotifications(notificationStatus: Map[String,NotificationStatus])(implicit ex: ExecutionContext): Future[Response]
 }
 
 @Singleton
 class PushNotificationConnector @Inject()(@Named("pushNotificationUrl") val serviceUrl: String, val http: HttpGet with HttpPost with HttpDelete) extends PushNotificationConnectorApi {
-  override def getUnsentNotifications()(implicit ex: ExecutionContext): Future[Seq[Notification]] = {
+  override def getQueuedNotifications()(implicit ex: ExecutionContext): Future[Seq[Notification]] = {
     get[Seq[Notification]]("/notifications/unsent", List.empty[(String, String)])
+  }
+
+  override def getTimedOutNotifications()(implicit ex: ExecutionContext): Future[Seq[Notification]] = {
+    get[Seq[Notification]]("/notifications/timedout", List.empty[(String, String)])
   }
 
   override def updateNotifications(notificationStatus: Map[String,NotificationStatus])(implicit ex: ExecutionContext): Future[Response] = {
