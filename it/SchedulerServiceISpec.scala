@@ -63,6 +63,7 @@ abstract class SchedulerServiceISpec(testName: String, services: Seq[ExternalSer
     def resetMongoRepositories() = {
       `/push/test-only/drop-all-records`.get() should have(status(200)) // todo...switch to delete
       `/aws-sns-stub/drop-all-records`().delete() should have(status(200))
+// Do not clear records. Allow records to build up since unique message Ids are now defined.       
 //      `/push-notification/test-only/notification/dropmongo`.delete() should have(status(200))
       `/aws-sns-stub/callback/reset`.delete() should have(status(200))
     }
