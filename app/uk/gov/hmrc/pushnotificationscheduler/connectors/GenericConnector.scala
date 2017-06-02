@@ -56,4 +56,14 @@ trait GenericConnector {
       }
     })
   }
+
+  def postToResource[T](resource: String, data: T)(implicit w: Writes[T], ex: ExecutionContext) = {
+    http.POST(resource, data, Seq.empty).map(response => {
+      response.status match {
+        case status if status >= 200 && status < 300 => Success(status)
+        case _ => Error(response.status)
+      }
+    })
+  }
+
 }

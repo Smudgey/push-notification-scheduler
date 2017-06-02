@@ -35,6 +35,10 @@ trait MetricsApi {
   def incrementNotificationSendFailure(n: Long)
   def incrementNotificationRequeued(n: Long)
   def incrementNotificationDisabled(n: Long)
+
+  def incrementCallbackSuccess(n: Long)
+  def incrementCallbackFailure(n: Long)
+  def incrementNotificationCallbackUpdateFailure(n: Long)
 }
 
 @Singleton
@@ -55,4 +59,9 @@ class Metrics extends MetricsApi with MicroserviceMetrics {
   override def incrementNotificationSendFailure(n: Long): Unit = registry.meter(s"$failed.notification-send").mark(n)
   override def incrementNotificationRequeued(n: Long): Unit = registry.meter(s"$successful.notification-requeued").mark(n)
   override def incrementNotificationDisabled(n: Long): Unit = registry.meter(s"$successful.notification-disabled").mark(n)
+
+  override def incrementCallbackSuccess(n: Long): Unit = registry.meter(s"$failed.callback-success").mark(n)
+  override def incrementCallbackFailure(n: Long): Unit = registry.meter(s"$successful.callback-failure").mark(n)
+  override def incrementNotificationCallbackUpdateFailure(n: Long): Unit = registry.meter(s"$successful.notification-callback-update-failure").mark(n)
+
 }

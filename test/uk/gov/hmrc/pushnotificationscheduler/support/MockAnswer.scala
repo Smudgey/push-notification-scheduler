@@ -14,13 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pushnotificationscheduler.scheduled
+package uk.gov.hmrc.pushnotificationscheduler.support
 
-import javax.inject.{Inject, Singleton}
+import org.mockito.invocation.InvocationOnMock
+import org.mockito.stubbing.Answer
 
-import uk.gov.hmrc.play.scheduling.{RunningOfScheduledJobs, ScheduledJob}
+import scala.concurrent.Future
 
-@Singleton
-class JobScheduler @Inject() (registrationTokenExchangeJob: RegistrationTokenExchangeJob, notificationSendJob: NotificationSendJob, callbackJob:CallbackJob) extends RunningOfScheduledJobs {
-  override lazy val scheduledJobs: Seq[ScheduledJob] = List(registrationTokenExchangeJob, notificationSendJob, callbackJob)
+trait MockAnswer {
+
+  def defineResult[T](resp:Future[T]) = {
+    class DefineResult extends Answer[Future[T]] {
+      override def answer(invocationOnMock: InvocationOnMock) = resp
+    }
+    new DefineResult
+  }
 }

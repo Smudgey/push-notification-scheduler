@@ -20,9 +20,12 @@ import javax.inject.{Inject, Named, Singleton}
 
 import com.google.inject.ImplementedBy
 import uk.gov.hmrc.play.http.{HttpDelete, HttpGet, HttpPost}
-import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus}
+import uk.gov.hmrc.pushnotificationscheduler.actor.{CallbackBatch, CallbackResultBatch}
+import uk.gov.hmrc.pushnotificationscheduler.domain.{Callback, Notification, NotificationStatus}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 @ImplementedBy(classOf[PushNotificationConnector])
 trait PushNotificationConnectorApi extends GenericConnector {
@@ -31,6 +34,9 @@ trait PushNotificationConnectorApi extends GenericConnector {
   def getQueuedNotifications()(implicit ex: ExecutionContext): Future[Seq[Notification]]
   def getTimedOutNotifications()(implicit ex: ExecutionContext): Future[Seq[Notification]]
   def updateNotifications(notificationStatus: Map[String,NotificationStatus])(implicit ex: ExecutionContext): Future[Response]
+
+  def getUndeliveredCallbacks()(implicit ex: ExecutionContext): Future[Seq[Callback]]
+  def updateCallbacks(batch:CallbackResultBatch):Future[Boolean]
 }
 
 @Singleton
@@ -46,4 +52,11 @@ class PushNotificationConnector @Inject()(@Named("pushNotificationUrl") val serv
   override def updateNotifications(notificationStatus: Map[String,NotificationStatus])(implicit ex: ExecutionContext): Future[Response] = {
     post[Map[String, NotificationStatus]]("/notifications/status", notificationStatus)
   }
+
+  override def getUndeliveredCallbacks()(implicit ex: ExecutionContext): Future[Seq[Callback]] =
+    get[CallbackBatch]("/callbacks/undelivered", List.empty[(String, String)]).map(_.batch)
+
+  override def updateCallbacks(batch: CallbackResultBatch): Future[Boolean] =
+    // 204 all updated, 202 not all updated.
+    post[CallbackResultBatch]("/callbacks/status ", batch).map(resp => if (resp.status == 204) true else false)
 }

@@ -24,15 +24,17 @@ import org.scalatest.mock.MockitoSugar
 import play.api.Logger
 import uk.gov.hmrc.play.http.{HttpException, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.pushnotificationscheduler.actor.CallbackResultBatch
 import uk.gov.hmrc.pushnotificationscheduler.connectors.{Error, PushNotificationConnector, Success}
 import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.{Delivered, Queued}
-import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus}
+import uk.gov.hmrc.pushnotificationscheduler.domain._
+import uk.gov.hmrc.pushnotificationscheduler.support.MockAnswer
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
 
-class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures {
+class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures with MockAnswer {
 
   private trait Setup extends MockitoSugar {
     val connector = mock[PushNotificationConnector]
@@ -70,6 +72,18 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     when(connector.getQueuedNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
     when(connector.getTimedOutNotifications()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Bash!", 500, 500)))
     when(connector.updateNotifications(any[Map[String,NotificationStatus]])(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+  }
+
+  private trait SuccessCallback extends Setup {
+
+    val callback1Success = Callback("http://somehost/a", PushMessageStatus.Acknowledge.toString, CallbackResponse("messageId1", Some("Yes")), 1)
+    val callback2Success = Callback("http://somehost/b", PushMessageStatus.Acknowledge.toString, CallbackResponse("messageId2", Some("Yes")), 1)
+    val someCallbacks = List(callback1Success, callback2Success)
+
+    val updatedCallbacks = CallbackResultBatch(List(
+      CallbackResult("messageId1", PushMessageStatus.Acknowledge.toString, success = true),
+      CallbackResult("messageId2", PushMessageStatus.Acknowledge.toString, success = true))
+    )
   }
 
   "PushNotificationServiceSpec getQueuedNotifications" should {
@@ -138,7 +152,7 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
   }
 
-  "PushRegistrationService updateNotifications" should {
+  "PushNotificationService updateNotifications" should {
     "return success when it has successfully updated notification statuses" in new Success {
 
       val result = await(service.updateNotifications(someStatuses))
@@ -174,4 +188,56 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
       }
     }
   }
+
+  "PushNotificationService receive callbacks" should {
+
+    "return list of callbacks" in new SuccessCallback {
+
+      when(connector.getUndeliveredCallbacks()).thenAnswer(defineResult(Future.successful(someCallbacks)))
+      val result = await(service.getCallbacks())
+      result shouldBe someCallbacks
+    }
+
+    "return empty list when no callbacks found" in new SuccessCallback {
+      when(connector.getUndeliveredCallbacks()).thenAnswer(defineResult(Future.successful(List.empty)))
+
+      val result = await(service.getCallbacks())
+      result shouldBe Seq.empty
+    }
+
+    "return empty list when connector fails" in new SuccessCallback {
+      when(connector.getUndeliveredCallbacks()).thenAnswer(defineResult(Future.failed(new Exception("Controlled explosion"))))
+
+      val result = await(service.getCallbacks())
+      result shouldBe Seq.empty
+    }
+
+  }
+
+  "PushNotificationService update callbacks" should {
+
+    "successfully update the state of the callbacks" in new SuccessCallback {
+      when(connector.updateCallbacks(updatedCallbacks)).thenAnswer(defineResult(Future.successful(true)))
+
+      val result = await(service.updateCallbacks(updatedCallbacks))
+      result shouldBe true
+    }
+
+    "return false when service does not update all records" in new SuccessCallback {
+      when(connector.updateCallbacks(updatedCallbacks)).thenAnswer(defineResult(Future.successful(false)))
+
+      val result = await(service.updateCallbacks(updatedCallbacks))
+      result shouldBe false
+    }
+
+    "throw an exception when the connector results in an exception" in new SuccessCallback {
+      when(connector.updateCallbacks(updatedCallbacks)).thenAnswer(defineResult(Future.failed(new Exception("Controlled explosion"))))
+
+      await(
+        service.updateCallbacks(updatedCallbacks).recover {
+          case ex:Exception => ex.getMessage should be ("Controlled explosion")
+      })
+    }
+  }
+
 }

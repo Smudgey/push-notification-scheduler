@@ -44,6 +44,7 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
 
     bind(classOf[String]).annotatedWith(named("pushRegistrationUrl")).toInstance(baseUrl("push-registration"))
     bind(classOf[String]).annotatedWith(named("pushNotificationUrl")).toInstance(baseUrl("push-notification"))
+    bind(classOf[String]).annotatedWith(named("callbackUrl")).toInstance("not-used")
     bind(classOf[String]).annotatedWith(named("snsClientUrl")).toInstance(baseUrl("sns-client"))
 
     bind(classOf[Int]).annotatedWith(named("registrationTokenDispatcherCount")).toInstance(maximumSenders(configuration, "registrationTokenDispatcher"))
@@ -53,5 +54,10 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
     bind(classOf[Int]).annotatedWith(named("notificationDispatcherCount")).toInstance(maximumSenders(configuration, "notificationDispatcher"))
     bind(classOf[FiniteDuration]).annotatedWith(named("notificationSendInitialDelaySeconds")).toInstance(durationFromConfig(configuration, "notificationSendJobApi", "initialDelay" ))
     bind(classOf[FiniteDuration]).annotatedWith(named("notificationSendIntervalSeconds")).toInstance(durationFromConfig(configuration, "notificationSendJobApi", "interval" ))
+
+    bind(classOf[Int]).annotatedWith(named("callbackDispatcherCount")).toInstance(maximumSenders(configuration, "callbackDispatcher"))
+    bind(classOf[FiniteDuration]).annotatedWith(named("callbackInitialDelaySeconds")).toInstance(durationFromConfig(configuration, "callbackJobApi", "initialDelay" ))
+    bind(classOf[FiniteDuration]).annotatedWith(named("callbackIntervalSeconds")).toInstance(durationFromConfig(configuration, "callbackJobApi", "interval" ))
+
   }
 }

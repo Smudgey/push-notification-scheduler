@@ -20,11 +20,13 @@ import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
 import play.api.Logger
+import uk.gov.hmrc.pushnotificationscheduler.actor.CallbackResultBatch
 import uk.gov.hmrc.pushnotificationscheduler.connectors.PushNotificationConnectorApi
-import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus}
+import uk.gov.hmrc.pushnotificationscheduler.domain.{Callback, Notification, NotificationStatus}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+
 
 @ImplementedBy(classOf[PushNotificationService])
 trait PushNotificationServiceApi extends EntityManager {
@@ -33,15 +35,26 @@ trait PushNotificationServiceApi extends EntityManager {
   def getQueuedNotifications: Future[Seq[Notification]]
   def getTimedOutNotifications: Future[Seq[Notification]]
   def updateNotifications(notificationStatus: Map[String,NotificationStatus]): Future[_]
+
+  def getCallbacks(): Future[Seq[Callback]]
+  def updateCallbacks(callbackOutcomes:CallbackResultBatch): Future[Boolean]
 }
 
 @Singleton
 class PushNotificationService @Inject() (connector: PushNotificationConnectorApi, override val logger: Logger) extends PushNotificationServiceApi {
+
   override def getQueuedNotifications: Future[Seq[Notification]] = fetch[Notification](connector.getQueuedNotifications())
 
   override def getTimedOutNotifications: Future[Seq[Notification]] = fetch[Notification](connector.getTimedOutNotifications())
 
-  override def updateNotifications(notificationStatus: Map[String, NotificationStatus]): Future[_] =
+  override def updateNotifications(notificationStatus: Map[String, NotificationStatus]): Future[Object] =
     update(connector.updateNotifications(notificationStatus))
+
+  override def getCallbacks(): Future[Seq[Callback]] =
+    fetch(connector.getUndeliveredCallbacks())
+
+  override def updateCallbacks(callbackOutcomes:CallbackResultBatch): Future[Boolean] = {
+    connector.updateCallbacks((callbackOutcomes))
+  }
 }
 

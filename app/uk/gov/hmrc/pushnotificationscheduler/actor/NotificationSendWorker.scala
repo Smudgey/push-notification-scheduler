@@ -27,15 +27,15 @@ import uk.gov.hmrc.pushnotificationscheduler.services.{PushNotificationService, 
 import scala.concurrent.Future
 
 class NotificationSendWorker(master: ActorRef, snsClientService: SnsClientService, pushNotificationService: PushNotificationService, metrics: Metrics) extends Worker[Batch[Notification]](master) {
-  override def doWork(work: Batch[Notification]): Future[_] = {
+  override def doWork(work: Batch[Notification]): Future[Any] = {
     snsClientService.sendNotifications(work).map { idToDeliveryStatusMap =>
       val idToNotificationStatusMap = idToDeliveryStatusMap.map { case (id, deliveryStatus) =>
         (id, deliveryStatus.toNotificationStatus)
       }
       pushNotificationService.updateNotifications(idToNotificationStatusMap).map { _ =>
-        metrics.incrementNotificationDelivered(idToDeliveryStatusMap.count(_._2 == Success))
-        metrics.incrementNotificationRequeued(idToDeliveryStatusMap.count(_._2 == Failed))
-        metrics.incrementNotificationDisabled(idToDeliveryStatusMap.count(_._2 == Disabled))
+      metrics.incrementNotificationDelivered(idToDeliveryStatusMap.count(_._2 == Success))
+      metrics.incrementNotificationRequeued(idToDeliveryStatusMap.count(_._2 == Failed))
+      metrics.incrementNotificationDisabled(idToDeliveryStatusMap.count(_._2 == Disabled))
       }.recover { case e =>
         Logger.error(s"Failed to update notification status: ${e.getMessage}")
         metrics.incrementNotificationUpdateFailure(work.size)

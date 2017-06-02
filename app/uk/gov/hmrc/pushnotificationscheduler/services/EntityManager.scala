@@ -40,8 +40,8 @@ trait EntityManager {
     }
   }
 
-  def update(func: => Future[Response])(implicit ec: ExecutionContext): Future[_] = {
-    func.map{ r: Response => r match {
+  def update(func: => Future[Response])(implicit ec: ExecutionContext): Future[Object] = {
+    func.flatMap{ r: Response => r match {
       case _: Success =>
         Future.successful(Unit)
       case _ =>
