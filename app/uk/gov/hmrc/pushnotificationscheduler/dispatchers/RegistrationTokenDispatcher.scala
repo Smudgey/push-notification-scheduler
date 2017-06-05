@@ -64,7 +64,6 @@ class RegistrationTokenDispatcher @Inject()(@Named("registrationTokenDispatcherC
           }
           _ <- gangMaster ? Epic[Batch[RegistrationToken]](work)
         } yield ()
-    Future.successful(Unit)
   }
 
   override def isRunning: Future[Boolean] = Future.successful(false)

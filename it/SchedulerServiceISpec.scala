@@ -12,6 +12,12 @@ import uk.gov.hmrc.domain.{Generator, Nino}
 import uk.gov.hmrc.play.it.{ExternalService, MongoMicroServiceEmbeddedServer, ServiceSpec}
 
 
+case class Response(messageId: String, answer: Option[String] = None)
+
+object Response {
+  implicit val formats = Json.format[Response]
+}
+
 class SchedulerIntegrationServer(override val testName: String, override val externalServices: Seq[ExternalService], override val additionalConfig: Map[String, String]) extends MongoMicroServiceEmbeddedServer
 
 object SchedulerServiceISpec
@@ -54,10 +60,12 @@ abstract class SchedulerServiceISpec(testName: String, services: Seq[ExternalSer
       }
     }
 
-    def resetMongoRepositories = {
+    def resetMongoRepositories() = {
       `/push/test-only/drop-all-records`.get() should have(status(200)) // todo...switch to delete
       `/aws-sns-stub/drop-all-records`().delete() should have(status(200))
-      `/push-notification/test-only/notification/dropmongo`.delete() should have(status(200))
+// Do not clear records. Allow records to build up since unique message Ids are now defined.       
+//      `/push-notification/test-only/notification/dropmongo`.delete() should have(status(200))
+      `/aws-sns-stub/callback/reset`.delete() should have(status(200))
     }
 
     def authResource(path: String): String = {
@@ -94,9 +102,19 @@ abstract class SchedulerServiceISpec(testName: String, services: Seq[ExternalSer
       httpClient.url(s"http://localhost:8246/test-only/notification/find/$token/$internalId")
     }
 
+    def `/push-notification/messages/:id/status`(headers: (String, String),id:String) = {
+      httpClient.url(s"http://localhost:8246/messages/$id/status").withHeaders(headers, ("Accept", "application/vnd.hmrc.1.0+json"))
+    }
+
+    def `/push-notification/callbacks/undelivered`(headers: (String, String)) =
+      httpClient.url(s"http://localhost:8246/callbacks/undelivered").withHeaders(headers, ("Accept", "application/vnd.hmrc.1.0+json"))
+
     def `/aws-sns-stub/drop-all-records`(): WSRequest = {
-      httpClient.url(
-        "http://localhost:8245/aws-sns-stub/messages")
+      httpClient.url("http://localhost:8245/aws-sns-stub/messages")
+    }
+
+    def `/aws-sns-stub/callback/reset`() : WSRequest = {
+      httpClient.url(s"http://localhost:8245/aws-sns-stub/callback/reset")
     }
 
     def `/aws-sns-stub/messages/:token`(token:String) : WSRequest = {
@@ -104,7 +122,11 @@ abstract class SchedulerServiceISpec(testName: String, services: Seq[ExternalSer
     }
 
     def `/aws-sns-stub/messages/publish-request/:token`(token:String, headers: (String, String)) : WSRequest = {
-      httpClient.url(s"http://localhost:8245/aws-sns-stub/messages/publish-request/$token").withHeaders(headers, ("Accept", "application/vnd.hmrc.1.0+json"))
+      httpClient.url(s"http://localhost:8245/aws-sns-stub/messages/publish-request/$token")//.withHeaders(headers, ("Accept", "application/vnd.hmrc.1.0+json"))
+    }
+
+    def `/aws-sns-stub/callback/:messageId`(headers: (String, String), token:String) : WSRequest = {
+      httpClient.url(s"http://localhost:8245/aws-sns-stub/callback/$token")//.withHeaders(headers, ("Accept", "application/vnd.hmrc.1.0+json"))
     }
 
     def `/auth/create-authority`(nino:Nino): ((String, String), String) = {
@@ -125,7 +147,7 @@ abstract class SchedulerServiceISpec(testName: String, services: Seq[ExternalSer
       val bearerToken = (exchange.json \\ "authToken").head.as[String]
       val authHeader = (HeaderNames.AUTHORIZATION, bearerToken)
 
-      // TODO: Remove once push-notification removes cl=200 check.
+      // TODO: Remove once push-notification removes CL=200 check.
       def updateConfidenceLevel(confidenceLevel: Int): Future[Unit] = {
         httpClient.url(authResource("/auth/authority"))
           .withHeaders(authHeader).withHeaders("Content-Type" -> "application/json")

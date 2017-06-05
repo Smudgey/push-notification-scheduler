@@ -23,45 +23,46 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.google.inject.ImplementedBy
-import uk.gov.hmrc.pushnotificationscheduler.actor.{Master, NotificationSendWorker}
+import uk.gov.hmrc.pushnotificationscheduler.actor._
 import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.{Batch, Epic, RegisterWorker}
-import uk.gov.hmrc.pushnotificationscheduler.domain.Notification
+import uk.gov.hmrc.pushnotificationscheduler.connectors.ReplyToClientConnector
+import uk.gov.hmrc.pushnotificationscheduler.domain.{Callback, Notification}
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
-import uk.gov.hmrc.pushnotificationscheduler.services.{PushNotificationService, SnsClientService}
+import uk.gov.hmrc.pushnotificationscheduler.services._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @ImplementedBy(classOf[NotificationDispatcher])
-trait NotificationDispatcherApi {
-  def processNotifications(): Future[Unit]
+trait CallbackDispatcherApi {
+  def processCallbacks(): Future[Unit]
 
   def isRunning: Future[Boolean]
 }
 
 @Singleton
-class NotificationDispatcher @Inject()(@Named("notificationDispatcherCount") notificationDispatcherCount: Int, snsClientService: SnsClientService, pushNotificationService: PushNotificationService, system: ActorSystem, metrics: Metrics) extends NotificationDispatcherApi {
+class CallbackDispatcher @Inject()(@Named("callbackDispatcherCount") callbackDispatcherCount: Int, pushNotificationService: PushNotificationService, replyToClient:ReplyToClientConnector, system: ActorSystem, metrics: Metrics) extends CallbackDispatcherApi {
   implicit val timeout = Timeout(1, HOURS)
 
   lazy val gangMaster: ActorRef = system.actorOf(Props[Master[Batch[Notification]]])
 
-  val name = "registration-token-dispatcher"
+  val name = "callback-dispatcher"
 
-  (1 until notificationDispatcherCount).foreach { _ =>
-    gangMaster ! RegisterWorker(system.actorOf(NotificationSendWorker.props(gangMaster, snsClientService, pushNotificationService, metrics)))
+  (1 until callbackDispatcherCount).foreach { _ =>
+    gangMaster ! RegisterWorker(system.actorOf(CallbackWorker.props(gangMaster, pushNotificationService, replyToClient, metrics)))
   }
 
-  override def processNotifications(): Future[Unit] = {
+  override def processCallbacks(): Future[Unit] = {
+
     for {
-      queued: Batch[Notification] <- pushNotificationService.getQueuedNotifications
-      timedOut: Batch[Notification] <- pushNotificationService.getTimedOutNotifications
+      queued: Batch[Callback] <- pushNotificationService.getCallbacks()
       work <- Future.successful {
-      if (queued.nonEmpty || timedOut.nonEmpty)
-        List(queued ++ timedOut)
-      else
-        List.empty
-    }
-      _ <- gangMaster ? Epic[Batch[Notification]](work)
+        if (queued.nonEmpty)
+          List(queued)
+        else
+          List.empty
+      }
+      _ <- gangMaster ? Epic[Batch[Callback]](work)
     } yield ()
   }
 

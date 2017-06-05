@@ -22,13 +22,11 @@ class SchedulerISpec extends SchedulerServiceISpec(testName = classOf[SchedulerI
 
     def notificationTestLifeCycle(testData:Seq[TestNotification]) = {
 
-      // Part 1: Register devices associated with users.
+      // Part 1: Register devices associated to users.
       testData.foreach { test =>
         test.devices.foreach { device =>
           `/push/registration`(test.authHeaders).post(
-            Json.
-              parse(
-                device.device)) should have(status(201))
+            Json.parse(device.device)) should have(status(201))
         }
       }
 
@@ -56,7 +54,7 @@ class SchedulerISpec extends SchedulerServiceISpec(testName = classOf[SchedulerI
         `/push-notification/message`(test.authHeaders).post(Json.toJson(template)) should have(status(201))
       }
 
-      // Part 4: Verify messages sent to SNS are correct concerning user Id and push-notification state for message
+      // Part 4: Verify messages sent to SNS are correct concerning user and push-notification state for message
       // has been updated to delivered.
       eventually(Timeout(Span(60, Seconds)), Interval(Span(2, Seconds))) {
 
@@ -84,14 +82,14 @@ class SchedulerISpec extends SchedulerServiceISpec(testName = classOf[SchedulerI
 
   "notification schedulers" should {
 
-    "successfully send notification only messages to devices where all devices have unique tokens" in new NotificationTest {
+    "successfully send notifications to devices where all devices have unique tokens" in new NotificationTest {
 
       val testData: Seq[TestNotification] = createTestNotifications(2, 3, uniqueDevices = true)
 
       notificationTestLifeCycle(testData)
     }
 
-    "successfully send notification only messages to devices where all devices share the same name across users" in new NotificationTest {
+    "successfully send notifications to devices where all devices share the same tokens across users" in new NotificationTest {
 
       val testData: Seq[TestNotification] = createTestNotifications(2, 3, uniqueDevices = false)
 

@@ -26,7 +26,7 @@ import uk.gov.hmrc.pushnotificationscheduler.services.{PushRegistrationService, 
 import scala.concurrent.Future
 
 class TokenExchangeWorker(master: ActorRef, snsClientService: SnsClientService, pushRegistrationService: PushRegistrationService, metrics: Metrics) extends Worker[Batch[RegistrationToken]](master) {
-  override def doWork(work: Batch[RegistrationToken]): Future[_] = {
+  override def doWork(work: Batch[RegistrationToken]): Future[Any] = {
 
     snsClientService.exchangeTokens(work).map { (tokenToEndpointMap: Map[String, Option[String]]) =>
       pushRegistrationService.registerEndpoints(tokenToEndpointMap).map { _ =>
