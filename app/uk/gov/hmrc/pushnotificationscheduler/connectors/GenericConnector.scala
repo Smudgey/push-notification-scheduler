@@ -57,6 +57,9 @@ trait GenericConnector {
     })
   }
 
+  def delete[T](resource: String)(implicit r: HttpReads[T], ex: ExecutionContext) =
+    http.DELETE(url(resource))
+
   def postToResource[T](resource: String, data: T)(implicit w: Writes[T], ex: ExecutionContext) = {
     http.POST(resource, data, Seq.empty).map(response => {
       response.status match {
