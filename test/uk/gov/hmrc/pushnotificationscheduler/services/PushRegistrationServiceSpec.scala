@@ -26,7 +26,7 @@ import uk.gov.hmrc.play.http.Upstream5xxResponse
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.connectors.{Error, PushRegistrationConnector, Success}
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows}
-import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
+import uk.gov.hmrc.pushnotificationscheduler.domain.{DeletedRegistrations, RegistrationToken}
 import uk.gov.hmrc.play.http.HttpException
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -44,6 +44,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     val expectedTokens = List(RegistrationToken("foo", Android), RegistrationToken("bar", Windows))
     val expectedMap = Map("token" -> Option("endpoint"), "otherToken" -> None)
     val expectedEndpoints = List("fee", "fi", "fo", "fum")
+    val expectedDeleted = DeletedRegistrations(5)
   }
 
   "PushRegistrationService.getUnregisteredTokens" should {
@@ -145,6 +146,24 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
         case Failure(e) => e.getMessage should contain ("500")
         case _ => fail("should not have succeeded")
       }
+    }
+  }
+
+  "PushRegistrationService.removeStaleRegistrations" should {
+    "return success when it has successfully deleted stale registrations" in new Setup {
+      when(connector.removeStaleRegistrations()(any[ExecutionContext]())).thenReturn(Future.successful(expectedDeleted))
+
+      val result: Option[DeletedRegistrations] = await(service.removeStaleRegistrations)
+
+      result shouldBe Some(expectedDeleted)
+    }
+
+    "return none when the push registration service fails" in new Setup {
+      when(connector.removeStaleRegistrations()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+
+      val result = await(service.removeStaleRegistrations)
+
+      result shouldBe None
     }
   }
 }
