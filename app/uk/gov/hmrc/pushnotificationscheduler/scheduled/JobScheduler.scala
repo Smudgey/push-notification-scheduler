@@ -21,6 +21,6 @@ import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.play.scheduling.{RunningOfScheduledJobs, ScheduledJob}
 
 @Singleton
-class JobScheduler @Inject() (registrationTokenExchangeJob: RegistrationTokenExchangeJob, notificationSendJob: NotificationSendJob, callbackJob:CallbackJob) extends RunningOfScheduledJobs {
-  override lazy val scheduledJobs: Seq[ScheduledJob] = List(registrationTokenExchangeJob, notificationSendJob, callbackJob)
+class JobScheduler @Inject() (registrationTokenExchangeJob: RegistrationTokenExchangeJob, notificationSendJob: NotificationSendJob, callbackJob:CallbackJob, removeStaleRegistrationsJob: RemoveStaleRegistrationsJob) extends RunningOfScheduledJobs {
+  override lazy val scheduledJobs: Seq[ScheduledJob] = List(registrationTokenExchangeJob, notificationSendJob, callbackJob, removeStaleRegistrationsJob)
 }
