@@ -35,6 +35,7 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
   private trait ThingsConnector extends GenericConnector {
     def getThings()(implicit ex: ExecutionContext): Future[Seq[String]]
     def updateThings(things: Seq[String])(implicit ex: ExecutionContext): Future[Response]
+    def deleteThings()(implicit ex: ExecutionContext): Future[Int]
   }
 
   private trait Setup extends MockitoSugar {
@@ -56,6 +57,7 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
   private trait Success extends Setup {
     when(mockConnector.getThings()(any[ExecutionContext]())).thenReturn(successful(someData))
     when(mockConnector.updateThings(any[Seq[String]])(any[ExecutionContext]())).thenReturn(successful(Success(200)))
+    when(mockConnector.deleteThings()(any[ExecutionContext]())).thenReturn(successful(5))
   }
 
   private trait NotFound extends Setup {
@@ -70,6 +72,7 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
   private trait Failed extends Setup {
     when(mockConnector.getThings()(any[ExecutionContext]())).thenReturn(failed(Upstream5xxResponse("service failed", 500, 500)))
     when(mockConnector.updateThings(any[Seq[String]])(any[ExecutionContext]())).thenReturn(failed(Upstream5xxResponse("service failed", 500, 500)))
+    when(mockConnector.deleteThings()(any[ExecutionContext]())).thenReturn(failed(Upstream5xxResponse("service failed", 500, 500)))
   }
 
   "fetch" should {
@@ -136,6 +139,25 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
       val message: String = stringCaptor.getValue
 
       message shouldBe "Failed to update data: service failed"
+    }
+  }
+
+  "delete" should {
+    "not log a message given a 200 response from the downstream service" in new Success {
+
+      await(service.delete[Int](mockConnector.deleteThings()))
+
+      verifyZeroInteractions(mockLogger)
+    }
+
+    "log an error when the delete has failed" in new Failed {
+      await(service.delete[Int](mockConnector.deleteThings()))
+
+      verify(mockLogger).error(stringCaptor.capture(), ArgumentMatchers.any[Throwable]())
+
+      val message: String = stringCaptor.getValue
+
+      message shouldBe "Failed to delete data: service failed"
     }
   }
 }

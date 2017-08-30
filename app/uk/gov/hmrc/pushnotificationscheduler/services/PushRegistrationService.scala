@@ -21,7 +21,7 @@ import javax.inject.{Inject, Singleton}
 import com.google.inject.ImplementedBy
 import play.api.Logger
 import uk.gov.hmrc.pushnotificationscheduler.connectors.PushRegistrationConnectorApi
-import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
+import uk.gov.hmrc.pushnotificationscheduler.domain.{DeletedRegistrations, RegistrationToken}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -33,6 +33,7 @@ trait PushRegistrationServiceApi extends EntityManager {
   def getUnregisteredTokens: Future[Seq[RegistrationToken]]
   def recoverFailedRegistrations: Future[Seq[RegistrationToken]]
   def registerEndpoints(tokenToEndpointMap: Map[String,Option[String]]): Future[_]
+  def removeStaleRegistrations: Future[Option[DeletedRegistrations]]
 }
 
 @Singleton
@@ -47,5 +48,9 @@ class PushRegistrationService @Inject() (connector: PushRegistrationConnectorApi
 
   override def registerEndpoints(tokenToEndpointMap: Map[String, Option[String]]): Future[_] = {
     update(connector.registerEndpoints(tokenToEndpointMap))
+  }
+
+  override def removeStaleRegistrations: Future[Option[DeletedRegistrations]] = {
+    delete(connector.removeStaleRegistrations())
   }
 }

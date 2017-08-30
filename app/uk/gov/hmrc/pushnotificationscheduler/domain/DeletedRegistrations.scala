@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pushnotificationscheduler.scheduled
+package uk.gov.hmrc.pushnotificationscheduler.domain
 
-import javax.inject.{Inject, Singleton}
+import play.api.libs.json._
 
-import uk.gov.hmrc.play.scheduling.{RunningOfScheduledJobs, ScheduledJob}
+case class DeletedRegistrations(removed: Int)
 
-@Singleton
-class JobScheduler @Inject() (registrationTokenExchangeJob: RegistrationTokenExchangeJob, notificationSendJob: NotificationSendJob, callbackJob:CallbackJob, removeStaleRegistrationsJob: RemoveStaleRegistrationsJob) extends RunningOfScheduledJobs {
-  override lazy val scheduledJobs: Seq[ScheduledJob] = List(registrationTokenExchangeJob, notificationSendJob, callbackJob, removeStaleRegistrationsJob)
+object DeletedRegistrations {
+  implicit val formats = Json.format[DeletedRegistrations]
 }

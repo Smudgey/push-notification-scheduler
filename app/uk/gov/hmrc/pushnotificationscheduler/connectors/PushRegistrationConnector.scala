@@ -21,7 +21,7 @@ import javax.inject.{Inject, Named, Singleton}
 import com.google.inject.ImplementedBy
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.{HttpDelete, HttpGet, HttpPost}
-import uk.gov.hmrc.pushnotificationscheduler.domain.RegistrationToken
+import uk.gov.hmrc.pushnotificationscheduler.domain.{DeletedRegistrations, RegistrationToken}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -41,6 +41,10 @@ trait PushRegistrationConnectorApi extends GenericConnector with ServicesConfig 
 // TODO...the update must contain the InternalAuthId associated with the token.
   def registerEndpoints(tokenToEndpointMap: Map[String,Option[String]])(implicit ex: ExecutionContext): Future[Response] = {
     post[Map[String, Option[String]]]("/push/endpoint", tokenToEndpointMap)
+  }
+
+  def removeStaleRegistrations()(implicit ex: ExecutionContext): Future[DeletedRegistrations] = {
+    delete[DeletedRegistrations]("/push/endpoint/stale")
   }
 }
 

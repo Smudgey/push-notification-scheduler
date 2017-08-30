@@ -41,16 +41,26 @@ trait EntityManager {
   }
 
   def update(func: => Future[Response])(implicit ec: ExecutionContext): Future[Object] = {
-    func.flatMap{ r: Response => r match {
-      case _: Success =>
-        Future.successful(Unit)
-      case _ =>
-        logger.error(s"Failed to update $entities, status = ${r.status}")
-        Future.failed(new HttpException(s"Failed to update $entities", r.status))
-    }}.recover {
+    func.flatMap { r: Response =>
+      r match {
+        case _: Success =>
+          Future.successful(Unit)
+        case _ =>
+          logger.error(s"Failed to update $entities, status = ${r.status}")
+          Future.failed(new HttpException(s"Failed to update $entities", r.status))
+      }
+    }.recover {
       case e: Throwable =>
         logger.error(s"Failed to update $entities: ${e.getMessage}", e)
         Future.failed(e)
+    }
+  }
+
+  def delete[T](func: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] = {
+    func.map(Some(_)) recover {
+      case e =>
+        logger.error(s"Failed to delete $entities: ${e.getMessage}", e)
+        None
     }
   }
 }

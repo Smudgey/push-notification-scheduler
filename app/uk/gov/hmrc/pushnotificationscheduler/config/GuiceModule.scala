@@ -59,5 +59,7 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
     bind(classOf[FiniteDuration]).annotatedWith(named("callbackInitialDelaySeconds")).toInstance(durationFromConfig(configuration, "callbackJobApi", "initialDelay" ))
     bind(classOf[FiniteDuration]).annotatedWith(named("callbackIntervalSeconds")).toInstance(durationFromConfig(configuration, "callbackJobApi", "interval" ))
 
+    bind(classOf[FiniteDuration]).annotatedWith(named("removeStaleRegistrationsDelaySeconds")).toInstance(durationFromConfig(configuration, "removeStaleRegistrationsJobApi", "initialDelay" ))
+    bind(classOf[FiniteDuration]).annotatedWith(named("removeStaleRegistrationsIntervalSeconds")).toInstance(durationFromConfig(configuration, "removeStaleRegistrationsJobApi", "interval" ))
   }
 }
