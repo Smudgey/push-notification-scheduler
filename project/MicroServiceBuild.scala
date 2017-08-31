@@ -5,7 +5,11 @@ import uk.gov.hmrc.SbtAutoBuildPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.versioning.SbtGitVersioning
 
-object AppDependencies {
+object MicroServiceBuild extends Build with MicroService {
+
+  val appName = "push-notification-scheduler"
+
+  override lazy val appDependencies: Seq[ModuleID] = compile ++ test()
 
   val compile = Seq(
     ws,
@@ -31,8 +35,5 @@ object AppDependencies {
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
     "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % scope
   )
-
-
-  def apply() = compile ++ test("test") ++ test("it")
 
 }
