@@ -26,11 +26,11 @@ retrieveManaged := true
 evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false)
 routesGenerator := StaticRoutesGenerator
 
-Keys.fork in IntegrationTest := false
-unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest)(base => Seq(base / "it")).value
-addTestReportOption(IntegrationTest, "int-test-reports")
-testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value)
-parallelExecution in IntegrationTest := false
+//Keys.fork in IntegrationTest := false
+//unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest)(base => Seq(base / "it")).value
+//addTestReportOption(IntegrationTest, "int-test-reports")
+//testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value)
+//parallelExecution in IntegrationTest := false
 
 resolvers ++= Seq(
       Resolver.bintrayRepo("hmrc", "releases"),
