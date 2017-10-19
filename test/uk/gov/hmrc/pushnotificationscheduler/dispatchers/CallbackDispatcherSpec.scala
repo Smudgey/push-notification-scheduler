@@ -19,14 +19,14 @@ package uk.gov.hmrc.pushnotificationscheduler.dispatchers
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import org.mockito.Mockito._
-import org.mockito.{Mockito, ArgumentCaptor, ArgumentMatchers}
+import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.actor.CallbackResultBatch
-import uk.gov.hmrc.pushnotificationscheduler.connectors.{Success, ReplyToClientConnector}
-import uk.gov.hmrc.pushnotificationscheduler.domain.{Callback, CallbackResult, CallbackResponse, PushMessageStatus}
+import uk.gov.hmrc.pushnotificationscheduler.connectors.{ReplyToClientConnector, Success}
+import uk.gov.hmrc.pushnotificationscheduler.domain.{Callback, CallbackResponse, CallbackResult, PushMessageStatus}
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services._
 import uk.gov.hmrc.pushnotificationscheduler.support.MockAnswer
@@ -86,12 +86,12 @@ class CallbackDispatcherSpec extends UnitSpec with ScalaFutures with MockitoSuga
       reset(mockReplyToClient)
 
       when(mockPushNotification.getCallbacks()).thenAnswer(defineResult(Future.successful(emptyCallbacks)))
-      when(mockReplyToClient.replyToClient(ArgumentMatchers.any[Callback]())).thenReturn(failed(new Exception("should not be called")))
+      when(mockReplyToClient.replyToClient(ArgumentMatchers.any[Callback])).thenReturn(failed(new Exception("should not be called")))
 
       await(dispatcher.processCallbacks())
 
       Eventually.eventually(
-        Mockito.verify(mockReplyToClient, times(0)).replyToClient(ArgumentMatchers.any[Callback]())
+        Mockito.verify(mockReplyToClient, times(0)).replyToClient(ArgumentMatchers.any[Callback])
       )
     }
   }

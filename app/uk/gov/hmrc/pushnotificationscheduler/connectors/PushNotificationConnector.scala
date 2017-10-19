@@ -19,12 +19,12 @@ package uk.gov.hmrc.pushnotificationscheduler.connectors
 import javax.inject.{Inject, Named, Singleton}
 
 import com.google.inject.ImplementedBy
-import uk.gov.hmrc.play.http.{HttpDelete, HttpGet, HttpPost}
+import uk.gov.hmrc.http.{CoreDelete, CoreGet, CorePost}
 import uk.gov.hmrc.pushnotificationscheduler.actor.{CallbackBatch, CallbackResultBatch}
 import uk.gov.hmrc.pushnotificationscheduler.domain.{Callback, Notification, NotificationStatus}
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 
 @ImplementedBy(classOf[PushNotificationConnector])
@@ -40,7 +40,7 @@ trait PushNotificationConnectorApi extends GenericConnector {
 }
 
 @Singleton
-class PushNotificationConnector @Inject()(@Named("pushNotificationUrl") val serviceUrl: String, val http: HttpGet with HttpPost with HttpDelete) extends PushNotificationConnectorApi {
+class PushNotificationConnector @Inject()(@Named("pushNotificationUrl") val serviceUrl: String, val http: CoreGet with CorePost with CoreDelete) extends PushNotificationConnectorApi {
   override def getQueuedNotifications()(implicit ex: ExecutionContext): Future[Seq[Notification]] = {
     get[Seq[Notification]]("/notifications/unsent", List.empty[(String, String)])
   }

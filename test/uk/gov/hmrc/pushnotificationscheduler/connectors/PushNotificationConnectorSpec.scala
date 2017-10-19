@@ -19,16 +19,17 @@ package uk.gov.hmrc.pushnotificationscheduler.connectors
 import org.mockito.ArgumentMatchers.{any, matches}
 import org.mockito.Mockito.doReturn
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.Writes
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.ws.WSHttp
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.domain.NotificationStatus.{Delivered, Queued}
 import uk.gov.hmrc.pushnotificationscheduler.domain.{Notification, NotificationStatus}
 import uk.gov.hmrc.pushnotificationscheduler.support.WithTestApplication
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
@@ -46,22 +47,22 @@ class PushNotificationConnectorSpec extends UnitSpec with WithTestApplication wi
   }
 
   private trait Success extends Setup {
-    doReturn(successful(Seq(someNotificationWithoutAMessageId, otherNotificationWithAMessageId)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/unsent"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
-    doReturn(successful(Seq(otherNotificationWithAMessageId, someNotificationWithoutAMessageId)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/timedout"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
-    doReturn(successful(HttpResponse(204, None)), Nil: _*).when(mockHttp).POST[Map[String, NotificationStatus], HttpResponse](matches(s"${connector.serviceUrl}/notifications/status"), any[Map[String, NotificationStatus]](), any[Seq[(String, String)]])(any[Writes[Map[String, NotificationStatus]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+    doReturn(successful(Seq(someNotificationWithoutAMessageId, otherNotificationWithAMessageId)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/unsent"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]], any[HeaderCarrier], any[ExecutionContext])
+    doReturn(successful(Seq(otherNotificationWithAMessageId, someNotificationWithoutAMessageId)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/timedout"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]], any[HeaderCarrier], any[ExecutionContext])
+    doReturn(successful(HttpResponse(204, None)), Nil: _*).when(mockHttp).POST[Map[String, NotificationStatus], HttpResponse](matches(s"${connector.serviceUrl}/notifications/status"), any[Map[String, NotificationStatus]](), any[Seq[(String, String)]])(any[Writes[Map[String, NotificationStatus]]](), any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
 
   }
 
   private trait BadRequest extends Setup {
-    doReturn(failed(new BadRequestException("SPLAT!")), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/unsent"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
-    doReturn(failed(new BadRequestException("CRACK!")), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/timedout"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
-    doReturn(failed(new BadRequestException("CRASH!")), Nil: _*).when(mockHttp).POST[Map[String, NotificationStatus], HttpResponse](matches(s"${connector.serviceUrl}/notifications/status"), any[Map[String, NotificationStatus]](), any[Seq[(String, String)]])(any[Writes[Map[String, NotificationStatus]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+    doReturn(failed(new BadRequestException("SPLAT!")), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/unsent"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]], any[HeaderCarrier], any[ExecutionContext])
+    doReturn(failed(new BadRequestException("CRACK!")), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/timedout"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]], any[HeaderCarrier], any[ExecutionContext])
+    doReturn(failed(new BadRequestException("CRASH!")), Nil: _*).when(mockHttp).POST[Map[String, NotificationStatus], HttpResponse](matches(s"${connector.serviceUrl}/notifications/status"), any[Map[String, NotificationStatus]](), any[Seq[(String, String)]])(any[Writes[Map[String, NotificationStatus]]](), any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
   }
 
   private trait UpstreamFailure extends Setup {
-    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/unsent"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
-    doReturn(failed(Upstream5xxResponse("BLAM!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/timedout"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]](), any[HeaderCarrier]())
-    doReturn(failed(Upstream5xxResponse("BOOM!", 500, 500)), Nil: _*).when(mockHttp).POST[Map[String, NotificationStatus], HttpResponse](matches(s"${connector.serviceUrl}/notifications/status"), any[Map[String, NotificationStatus]](), any[Seq[(String, String)]])(any[Writes[Map[String, NotificationStatus]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/unsent"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]], any[HeaderCarrier], any[ExecutionContext])
+    doReturn(failed(Upstream5xxResponse("BLAM!", 500, 500)), Nil: _*).when(mockHttp).GET[Seq[Notification]](matches(s"${connector.serviceUrl}/notifications/timedout"), any[Seq[(String, String)]]())(any[HttpReads[Seq[Notification]]], any[HeaderCarrier], any[ExecutionContext])
+    doReturn(failed(Upstream5xxResponse("BOOM!", 500, 500)), Nil: _*).when(mockHttp).POST[Map[String, NotificationStatus], HttpResponse](matches(s"${connector.serviceUrl}/notifications/status"), any[Map[String, NotificationStatus]](), any[Seq[(String, String)]])(any[Writes[Map[String, NotificationStatus]]](), any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
   }
 
   "getQueuedNotifications" should {

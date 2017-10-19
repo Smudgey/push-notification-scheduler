@@ -20,8 +20,8 @@ import javax.inject.{Inject, Named, Singleton}
 
 import com.google.inject.ImplementedBy
 import play.api.libs.json._
+import uk.gov.hmrc.http.{CoreDelete, CoreGet, CorePost, HttpReads}
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HttpDelete, HttpGet, HttpPost, HttpReads}
 import uk.gov.hmrc.pushnotificationscheduler.domain.{DeliveryStatus, Notification, RegistrationToken}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -49,4 +49,4 @@ trait SnsClientConnectorApi extends GenericConnector with ServicesConfig {
 }
 
 @Singleton
-class SnsClientConnector @Inject()(@Named("snsClientUrl") val serviceUrl: String, val http: HttpGet with HttpPost with HttpDelete) extends SnsClientConnectorApi
+class SnsClientConnector @Inject()(@Named("snsClientUrl") val serviceUrl: String, val http: CoreGet with CorePost with CoreDelete) extends SnsClientConnectorApi

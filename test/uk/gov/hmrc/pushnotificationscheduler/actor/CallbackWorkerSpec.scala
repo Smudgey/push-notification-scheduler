@@ -24,16 +24,14 @@ import akka.testkit.TestKit
 import akka.util.Timeout
 import org.mockito.Mockito.{times, verify, when}
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.Epic
-import uk.gov.hmrc.pushnotificationscheduler.connectors.ReplyToClientConnector
-import uk.gov.hmrc.pushnotificationscheduler.domain.{CallbackResult, Callback, CallbackResponse, PushMessageStatus}
+import uk.gov.hmrc.pushnotificationscheduler.connectors.{ReplyToClientConnector, Success}
+import uk.gov.hmrc.pushnotificationscheduler.domain.{Callback, CallbackResponse, CallbackResult, PushMessageStatus}
 import uk.gov.hmrc.pushnotificationscheduler.metrics.Metrics
 import uk.gov.hmrc.pushnotificationscheduler.services._
 import uk.gov.hmrc.pushnotificationscheduler.support.MockAnswer
-import uk.gov.hmrc.pushnotificationscheduler.connectors.Success
-
 
 import scala.concurrent.Future
 

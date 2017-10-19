@@ -19,7 +19,7 @@ package uk.gov.hmrc.pushnotificationscheduler.scheduled
 import org.mockito.Mockito
 import org.mockito.Mockito.{times, when}
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.domain.DeletedRegistrations
 import uk.gov.hmrc.pushnotificationscheduler.services.PushRegistrationService

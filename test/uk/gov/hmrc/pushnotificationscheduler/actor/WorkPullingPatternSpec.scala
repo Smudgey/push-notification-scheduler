@@ -19,8 +19,8 @@ package uk.gov.hmrc.pushnotificationscheduler.actor
 import akka.actor._
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit, TestProbe}
 import org.scalatest.LoneElement
-import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern._
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -73,7 +73,7 @@ class WorkPullingPatternSpec extends TestKit(ActorSystem("AkkaWorkPullingSystem"
     "responds with `CurrentlyBusy` if it's currently working on an epic" in {
       val master = newMasterWithWorker[String]
       master ! newEpic("someWork")
-      expectNoMsg(500 millis)
+      expectNoMessage(500 millis)
       master ! newEpic("some other epic")
       expectMsg(CurrentlyBusy)
     }

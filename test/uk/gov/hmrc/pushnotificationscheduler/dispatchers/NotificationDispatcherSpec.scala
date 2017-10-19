@@ -21,7 +21,7 @@ import akka.testkit.TestKit
 import org.mockito.Mockito.{reset, times, when}
 import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.actor.UpdateSuccess
@@ -69,7 +69,7 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
       when(mockPushNotification.getQueuedNotifications).thenReturn(successful(queuedNotifications))
       when(mockPushNotification.getTimedOutNotifications).thenReturn(successful(timedOutNotifications))
       when(mockPushNotification.updateNotifications(ArgumentMatchers.any[Map[String, NotificationStatus]]())).thenAnswer(new UpdateSuccess)
-      when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]]())).thenReturn(successful(deliveryStatuses))
+      when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]])).thenReturn(successful(deliveryStatuses))
 
       await(dispatcher.processNotifications())
 
@@ -90,12 +90,12 @@ class NotificationDispatcherSpec extends UnitSpec with ScalaFutures with Mockito
 
       when(mockPushNotification.getQueuedNotifications).thenReturn(successful(Seq.empty))
       when(mockPushNotification.getTimedOutNotifications).thenReturn(successful(Seq.empty))
-      when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]]())).thenReturn(failed(new Exception("should not be called")))
+      when(mockSnsClient.sendNotifications(ArgumentMatchers.any[Seq[Notification]])).thenReturn(failed(new Exception("should not be called")))
 
       await(dispatcher.processNotifications())
 
       Eventually.eventually(
-        Mockito.verify(mockSnsClient, times(0)).sendNotifications(ArgumentMatchers.any[Seq[Notification]]())
+        Mockito.verify(mockSnsClient, times(0)).sendNotifications(ArgumentMatchers.any[Seq[Notification]])
       )
     }
   }

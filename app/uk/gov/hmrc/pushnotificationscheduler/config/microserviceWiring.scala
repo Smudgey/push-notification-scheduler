@@ -16,28 +16,30 @@
 
 package uk.gov.hmrc.pushnotificationscheduler
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Singleton
 
+import uk.gov.hmrc.http.hooks.HttpHooks
+import uk.gov.hmrc.http.{HttpDelete, HttpGet, HttpPost, HttpPut}
 import uk.gov.hmrc.play.audit.http.HttpAuditing
-import uk.gov.hmrc.play.audit.http.config.LoadAuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.auth.microservice.connectors.AuthConnector
 import uk.gov.hmrc.play.config.{AppName, RunMode, ServicesConfig}
-import uk.gov.hmrc.play.http.hooks.HttpHook
 import uk.gov.hmrc.play.http.ws._
+import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
 
-@Singleton
-class WSHttp @Inject() (override val auditConnector: AuditConnector) extends WSGet with WSPost with WSDelete with AppName with HttpAuditing {
-  override val hooks: Seq[HttpHook] = Seq(AuditingHook)
+trait Hooks extends HttpHooks with HttpAuditing {
+  override val hooks = Seq(AuditingHook)
+  override lazy val auditConnector: AuditConnector = MicroserviceAuditConnector
 }
 
+trait WSHttpTrait extends HttpGet with WSGet with HttpPut with WSPut with HttpPost with WSPost with HttpDelete with WSDelete with Hooks with AppName
 @Singleton
-class MicroserviceAuditConnector extends AuditConnector with RunMode {
+class WSHttp extends WSHttpTrait
+
+object MicroserviceAuditConnector extends AuditConnector with RunMode {
   override lazy val auditingConfig = LoadAuditingConfig(s"auditing")
 }
 
-object MicroserviceAuditConnector extends MicroserviceAuditConnector
-
-object MicroserviceAuthConnector extends AuthConnector with ServicesConfig {
+object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with WSHttpTrait {
   override val authBaseUrl = baseUrl("auth")
 }

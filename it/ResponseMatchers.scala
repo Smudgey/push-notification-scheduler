@@ -1,7 +1,5 @@
-import _root_.play.api.libs.json._
-import _root_.play.api.libs.ws.WSResponse
-import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.matchers.{HavePropertyMatchResult, HavePropertyMatcher}
+import play.api.libs.json._
+import play.api.libs.ws.WSResponse
 
 import scala.concurrent.Future
 

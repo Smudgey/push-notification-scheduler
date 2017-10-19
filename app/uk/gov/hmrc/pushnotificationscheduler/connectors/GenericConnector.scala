@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
 import play.api.libs.json.Writes
-import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.http._
 
 import scala.concurrent.ExecutionContext
 
@@ -35,7 +35,7 @@ trait GenericConnector {
 
   val externalServiceName = "some-service"
 
-  val http: HttpGet with HttpPost with HttpDelete
+  val http: CoreGet with CorePost with CoreDelete
 
   val serviceUrl: String
 

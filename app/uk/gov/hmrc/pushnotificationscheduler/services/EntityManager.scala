@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pushnotificationscheduler.services
 
 import play.api.Logger
-import uk.gov.hmrc.play.http.HttpException
+import uk.gov.hmrc.http.HttpException
 import uk.gov.hmrc.pushnotificationscheduler.connectors.{Response, Success}
 
 import scala.concurrent.{ExecutionContext, Future}

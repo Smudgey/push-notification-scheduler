@@ -23,11 +23,9 @@ import akka.pattern.ask
 import akka.testkit.TestKit
 import akka.util.Timeout
 import org.mockito.Mockito.{times, verify, when}
-import org.mockito.invocation.InvocationOnMock
-import org.mockito.stubbing.Answer
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
-import org.scalatest.mock.MockitoSugar
-import uk.gov.hmrc.play.http.HttpException
+import org.scalatest.mockito.MockitoSugar
+import uk.gov.hmrc.http.HttpException
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.actor.WorkPullingPattern.Epic
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows, iOS}

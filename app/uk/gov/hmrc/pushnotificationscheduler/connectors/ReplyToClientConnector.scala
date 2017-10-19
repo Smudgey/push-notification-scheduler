@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.connectors
 
-import javax.inject.{Named, Inject, Singleton}
+import javax.inject.{Inject, Named, Singleton}
 
 import com.google.inject.ImplementedBy
-import uk.gov.hmrc.play.http.{HttpDelete, HttpPost, HttpGet}
-import uk.gov.hmrc.pushnotificationscheduler.domain.{ClientRequest, Callback}
+import uk.gov.hmrc.http.{CoreDelete, CoreGet, CorePost}
+import uk.gov.hmrc.pushnotificationscheduler.domain.{Callback, ClientRequest}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 @ImplementedBy(classOf[ReplyToClientConnector])
 trait ReplyToClientConnectorApi extends GenericConnector {
@@ -32,7 +32,7 @@ trait ReplyToClientConnectorApi extends GenericConnector {
 }
 
 @Singleton
-class ReplyToClientConnector @Inject()(@Named("callbackUrl") val serviceUrl: String, val http: HttpGet with HttpPost with HttpDelete) extends ReplyToClientConnectorApi {
+class ReplyToClientConnector @Inject()(@Named("callbackUrl") val serviceUrl: String, val http: CoreGet with CorePost with CoreDelete) extends ReplyToClientConnectorApi {
 
   def replyToClient(callback:Callback): Future[Response] = {
     postToResource[ClientRequest](callback.callbackUrl, ClientRequest(callback.status, callback.response))

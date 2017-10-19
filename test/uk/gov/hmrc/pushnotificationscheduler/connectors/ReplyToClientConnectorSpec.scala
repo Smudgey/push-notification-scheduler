@@ -19,15 +19,16 @@ package uk.gov.hmrc.pushnotificationscheduler.connectors
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.Writes
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.http.ws.WSHttp
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.domain._
 import uk.gov.hmrc.pushnotificationscheduler.support.WithTestApplication
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.Future._
 
 class ReplyToClientConnectorSpec extends UnitSpec with WithTestApplication with ServicesConfig with ScalaFutures {
@@ -42,15 +43,15 @@ class ReplyToClientConnectorSpec extends UnitSpec with WithTestApplication with 
   }
 
   private trait Success extends Setup {
-    doReturn(successful(HttpResponse(200, None)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(someUrl), any[Map[String, String]], any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+    doReturn(successful(HttpResponse(200, None)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(someUrl), any[Map[String, String]], any[Seq[(String, String)]])(any[Writes[Map[String, String]]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
   }
 
   private trait Error extends Setup {
-    doReturn(successful(HttpResponse(500, None)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(someUrl), any[Map[String, String]], any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+    doReturn(successful(HttpResponse(500, None)), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(someUrl), any[Map[String, String]], any[Seq[(String, String)]])(any[Writes[Map[String, String]]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
   }
 
   private trait ExceptionTest extends Setup {
-    doReturn(failed(new BadRequestException("Controlled explosion!")), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(someUrl), any[Map[String, String]], any[Seq[(String, String)]])(any[Writes[Map[String, String]]](), any[HttpReads[HttpResponse]](), any[HeaderCarrier]())
+    doReturn(failed(new BadRequestException("Controlled explosion!")), Nil: _*).when(mockHttp).POST[Map[String, String], HttpResponse](matches(someUrl), any[Map[String, String]], any[Seq[(String, String)]])(any[Writes[Map[String, String]]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
   }
 
   "invoking the client callback connector" should {
