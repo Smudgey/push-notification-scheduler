@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.services
 
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
-import org.mockito.ArgumentCaptor
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import play.api.Logger
@@ -32,7 +32,6 @@ import uk.gov.hmrc.pushnotificationscheduler.support.MockAnswer
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Failure
 
 class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures with MockAnswer {
 
@@ -155,37 +154,26 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
   "PushNotificationService updateNotifications" should {
     "return success when it has successfully updated notification statuses" in new Success {
 
-      val result = await(service.updateNotifications(someStatuses))
+      val result: Object = await(service.updateNotifications(someStatuses))
 
       val captor: ArgumentCaptor[Map[String,NotificationStatus]] = ArgumentCaptor.forClass(classOf[Map[String,NotificationStatus]])
       verify(connector).updateNotifications(captor.capture())(any[ExecutionContext]())
 
       captor.getValue shouldBe someStatuses
-
-      result.onComplete{
-        case Failure(_) => fail("should have succeeded")
-        case _ => // all good
-      }
     }
 
     "return failure when it can when it cannot update notification statuses because of a problem with the data" in new BadRequest {
 
-      val result = await(service.updateNotifications(someStatuses))
-
-      result.onComplete{
-        case Failure(e) => e.getMessage should contain ("400")
-        case _ => fail("should not have succeeded")
-      }
+      intercept[HttpException] {
+        await(service.updateNotifications(someStatuses))
+      }.responseCode shouldBe 400
     }
 
     "return failure when it cannot notification statuses because of a remote service failure" in new Failed {
 
-      val result = await(service.updateNotifications(someStatuses))
-
-      result.onComplete{
-        case Failure(e) => e.getMessage should contain ("500")
-        case _ => fail("should not have succeeded")
-      }
+      intercept[Upstream5xxResponse] {
+        await(service.updateNotifications(someStatuses))
+      }.upstreamResponseCode shouldBe 500
     }
   }
 

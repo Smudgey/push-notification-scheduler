@@ -17,21 +17,18 @@
 package uk.gov.hmrc.pushnotificationscheduler.services
 
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{any, anyInt}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import play.api.Logger
-import uk.gov.hmrc.play.http.Upstream5xxResponse
+import uk.gov.hmrc.play.http.{HttpException, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.connectors.{Error, PushRegistrationConnector, Success}
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows}
 import uk.gov.hmrc.pushnotificationscheduler.domain.{DeletedRegistrations, RegistrationToken}
-import uk.gov.hmrc.play.http.HttpException
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Failure
 
 class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures {
 
@@ -119,35 +116,26 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
       verify(connector).registerEndpoints(captor.capture())(any[ExecutionContext]())
 
       captor.getValue shouldBe expectedMap
-
-      result.onComplete{
-        case Failure(_) => fail("should have succeeded")
-        case _ => // all good
-      }
     }
 
     "return failure when it can when it cannot save endpoint details because of a problem with the remote service " in new Setup {
       when(connector.registerEndpoints(any[Map[String,Option[String]]])(any[ExecutionContext]())).thenReturn(Future.successful(Error(400)))
 
-      val result = await(service.registerEndpoints(expectedMap))
-
-      result.onComplete{
-        case Failure(e) => e.getMessage should contain ("400")
-        case _ => fail("should not have succeeded")
-      }
+      intercept[HttpException] {
+        await(service.registerEndpoints(expectedMap))
+      }.responseCode shouldBe 400
     }
 
     "return failure when it cannot save endpoint details because of a remote service failure" in new Setup {
       when(connector.registerEndpoints(any[Map[String,Option[String]]])(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
 
-      val result = await(service.registerEndpoints(expectedMap))
-
-      result.onComplete{
-        case Failure(e) => e.getMessage should contain ("500")
-        case _ => fail("should not have succeeded")
-      }
+      intercept[Upstream5xxResponse] {
+        await(service.registerEndpoints(expectedMap))
+      }.upstreamResponseCode shouldBe 500
     }
   }
+
+
 
   "PushRegistrationService.removeStaleRegistrations" should {
     "return success when it has successfully deleted stale registrations" in new Setup {

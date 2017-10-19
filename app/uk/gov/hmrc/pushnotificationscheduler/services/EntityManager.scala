@@ -40,16 +40,16 @@ trait EntityManager {
     }
   }
 
-  def update(func: => Future[Response])(implicit ec: ExecutionContext): Future[Object] = {
+  def update(func: => Future[Response])(implicit ec: ExecutionContext): Future[Unit] = {
     func.flatMap { r: Response =>
       r match {
         case _: Success =>
-          Future.successful(Unit)
+          Future.successful(())
         case _ =>
           logger.error(s"Failed to update $entities, status = ${r.status}")
           Future.failed(new HttpException(s"Failed to update $entities", r.status))
       }
-    }.recover {
+    }.recoverWith {
       case e: Throwable =>
         logger.error(s"Failed to update $entities: ${e.getMessage}", e)
         Future.failed(e)

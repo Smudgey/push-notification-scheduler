@@ -34,7 +34,7 @@ trait PushNotificationServiceApi extends EntityManager {
 
   def getQueuedNotifications: Future[Seq[Notification]]
   def getTimedOutNotifications: Future[Seq[Notification]]
-  def updateNotifications(notificationStatus: Map[String,NotificationStatus]): Future[_]
+  def updateNotifications(notificationStatus: Map[String,NotificationStatus]): Future[Unit]
 
   def getCallbacks(): Future[Seq[Callback]]
   def updateCallbacks(callbackOutcomes:CallbackResultBatch): Future[Boolean]
@@ -47,7 +47,7 @@ class PushNotificationService @Inject() (connector: PushNotificationConnectorApi
 
   override def getTimedOutNotifications: Future[Seq[Notification]] = fetch[Notification](connector.getTimedOutNotifications())
 
-  override def updateNotifications(notificationStatus: Map[String, NotificationStatus]): Future[Object] =
+  override def updateNotifications(notificationStatus: Map[String, NotificationStatus]): Future[Unit] =
     update(connector.updateNotifications(notificationStatus))
 
   override def getCallbacks(): Future[Seq[Callback]] =
