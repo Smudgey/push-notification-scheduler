@@ -20,10 +20,9 @@ import com.google.inject.AbstractModule
 import com.google.inject.name.Names.named
 import play.api.Mode.Mode
 import play.api.{Configuration, Environment, Logger}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.http.{CoreDelete, CoreGet, CorePost}
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HttpDelete, HttpGet, HttpPost}
-import uk.gov.hmrc.pushnotificationscheduler.{MicroserviceAuditConnector, WSHttp}
+import uk.gov.hmrc.pushnotificationscheduler.WSHttp
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -35,10 +34,9 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
 
   override def configure(): Unit = {
 
-    bind(classOf[HttpGet]).to(classOf[WSHttp])
-    bind(classOf[HttpPost]).to(classOf[WSHttp])
-    bind(classOf[HttpDelete]).to(classOf[WSHttp])
-    bind(classOf[AuditConnector]).to(classOf[MicroserviceAuditConnector])
+    bind(classOf[CoreGet]).to(classOf[WSHttp])
+    bind(classOf[CorePost]).to(classOf[WSHttp])
+    bind(classOf[CoreDelete]).to(classOf[WSHttp])
 
     bind(classOf[Logger]).toInstance(Logger("push-notification-scheduler"))
 

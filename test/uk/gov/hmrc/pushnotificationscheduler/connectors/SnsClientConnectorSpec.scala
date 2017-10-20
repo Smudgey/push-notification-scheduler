@@ -22,16 +22,17 @@ import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, matches}
 import org.mockito.Mockito.doReturn
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.Writes
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpReads, Upstream5xxResponse}
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.ws.WSHttp
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows, iOS}
 import uk.gov.hmrc.pushnotificationscheduler.domain.{DeliveryStatus, Notification, RegistrationToken}
 import uk.gov.hmrc.pushnotificationscheduler.support.WithTestApplication
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
@@ -53,18 +54,18 @@ class SnsClientConnectorSpec extends UnitSpec with WithTestApplication with Serv
   }
 
   private trait Success extends Setup {
-    doReturn(successful(unregisteredTokens.map(_.token -> UUID.randomUUID().toString).toMap), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(unregisteredTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
-    doReturn(successful(notifications.map(_.id -> DeliveryStatus.Success).toMap), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,DeliveryStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]](), any[Seq[(String, String)]])(any[Writes[Seq[Notification]]](), any[HttpReads[Map[String,DeliveryStatus]]](), any[HeaderCarrier]())
+    doReturn(successful(unregisteredTokens.map(_.token -> UUID.randomUUID().toString).toMap), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(unregisteredTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]], any[HttpReads[Map[String,Option[String]]]], any[HeaderCarrier], any[ExecutionContext])
+    doReturn(successful(notifications.map(_.id -> DeliveryStatus.Success).toMap), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,DeliveryStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]], any[Seq[(String, String)]])(any[Writes[Seq[Notification]]], any[HttpReads[Map[String,DeliveryStatus]]], any[HeaderCarrier], any[ExecutionContext])
   }
 
   private trait BadRequest extends Setup {
-    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(badTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
-    doReturn(failed(new BadRequestException("BASH!")), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,DeliveryStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]](), any[Seq[(String, String)]])(any[Writes[Seq[Notification]]](), any[HttpReads[Map[String,DeliveryStatus]]](), any[HeaderCarrier]())
+    doReturn(failed(new BadRequestException("BOOM!")), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(badTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]], any[HttpReads[Map[String,Option[String]]]], any[HeaderCarrier], any[ExecutionContext])
+    doReturn(failed(new BadRequestException("BASH!")), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,DeliveryStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]], any[Seq[(String, String)]])(any[Writes[Seq[Notification]]], any[HttpReads[Map[String,DeliveryStatus]]], any[HeaderCarrier], any[ExecutionContext])
   }
 
   private trait Failed extends Setup {
-    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(breakingTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]](), any[HttpReads[Map[String,Option[String]]]](), any[HeaderCarrier]())
-    doReturn(failed(Upstream5xxResponse("SPLAT!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,DeliveryStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]](), any[Seq[(String, String)]])(any[Writes[Seq[Notification]]](), any[HttpReads[Map[String,DeliveryStatus]]](), any[HeaderCarrier]())
+    doReturn(failed(Upstream5xxResponse("KAPOW!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[RegistrationToken], Map[String,Option[String]]](matches(s"${connector.serviceUrl}/sns-client/endpoints"), ArgumentMatchers.eq(breakingTokens), any[Seq[(String, String)]])(any[Writes[Seq[RegistrationToken]]], any[HttpReads[Map[String,Option[String]]]], any[HeaderCarrier], any[ExecutionContext])
+    doReturn(failed(Upstream5xxResponse("SPLAT!", 500, 500)), Nil: _*).when(mockHttp).POST[Seq[Notification], Map[String,DeliveryStatus]](matches(s"${connector.serviceUrl}/sns-client/notifications"), any[Seq[Notification]], any[Seq[(String, String)]])(any[Writes[Seq[Notification]]], any[HttpReads[Map[String,DeliveryStatus]]], any[HeaderCarrier], any[ExecutionContext])
   }
 
   "exchangeTokens" should {

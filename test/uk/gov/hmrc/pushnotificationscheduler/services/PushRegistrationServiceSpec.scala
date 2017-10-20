@@ -17,20 +17,19 @@
 package uk.gov.hmrc.pushnotificationscheduler.services
 
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{any, anyInt}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import play.api.Logger
-import uk.gov.hmrc.play.http.Upstream5xxResponse
+import uk.gov.hmrc.http.{HttpException, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.connectors.{Error, PushRegistrationConnector, Success}
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows}
 import uk.gov.hmrc.pushnotificationscheduler.domain.{DeletedRegistrations, RegistrationToken}
-import uk.gov.hmrc.play.http.HttpException
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
 
 class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures {
@@ -58,7 +57,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when no unregistered tokens are available" in new Setup {
-      when(connector.getUnregisteredTokens()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Move along!", 404)))
+      when(connector.getUnregisteredTokens()(any[ExecutionContext])).thenReturn(Future.failed(new HttpException("Move along!", 404)))
 
       val result = await(service.getUnregisteredTokens)
 
@@ -66,7 +65,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when the push registration service is not available" in new Setup {
-      when(connector.getUnregisteredTokens()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Failed to acquire lock", 503)))
+      when(connector.getUnregisteredTokens()(any[ExecutionContext])).thenReturn(Future.failed(new HttpException("Failed to acquire lock", 503)))
 
       val result = await(service.getUnregisteredTokens)
 
@@ -74,7 +73,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when the push registration service fails" in new Setup {
-      when(connector.getUnregisteredTokens()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+      when(connector.getUnregisteredTokens()(any[ExecutionContext])).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
 
       val result = await(service.getUnregisteredTokens)
 
@@ -93,7 +92,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when no unregistered tokens are available" in new Setup {
-      when(connector.recoverFailedRegistrations()(any[ExecutionContext]())).thenReturn(Future.failed(new HttpException("Move along!", 404)))
+      when(connector.recoverFailedRegistrations()(any[ExecutionContext])).thenReturn(Future.failed(new HttpException("Move along!", 404)))
 
       val result = await(service.recoverFailedRegistrations)
 
@@ -101,7 +100,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return an empty list when the push registration service fails" in new Setup {
-      when(connector.recoverFailedRegistrations()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+      when(connector.recoverFailedRegistrations()(any[ExecutionContext])).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
 
       val result = await(service.recoverFailedRegistrations)
 
@@ -111,12 +110,12 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
 
   "PushRegistrationService.registerEndpoints" should {
     "return success when it has successfully registered endpoints" in new Setup {
-      when(connector.registerEndpoints(any[Map[String,Option[String]]])(any[ExecutionContext]())).thenReturn(Future.successful(Success(200)))
+      when(connector.registerEndpoints(any[Map[String,Option[String]]])(any[ExecutionContext])).thenReturn(Future.successful(Success(200)))
 
       val result = await(service.registerEndpoints(expectedMap))
 
       val captor: ArgumentCaptor[Map[String,Option[String]]] = ArgumentCaptor.forClass(classOf[Map[String,Option[String]]])
-      verify(connector).registerEndpoints(captor.capture())(any[ExecutionContext]())
+      verify(connector).registerEndpoints(captor.capture())(any[ExecutionContext])
 
       captor.getValue shouldBe expectedMap
 
@@ -127,7 +126,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return failure when it can when it cannot save endpoint details because of a problem with the remote service " in new Setup {
-      when(connector.registerEndpoints(any[Map[String,Option[String]]])(any[ExecutionContext]())).thenReturn(Future.successful(Error(400)))
+      when(connector.registerEndpoints(any[Map[String,Option[String]]])(any[ExecutionContext])).thenReturn(Future.successful(Error(400)))
 
       val result = await(service.registerEndpoints(expectedMap))
 
@@ -138,7 +137,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return failure when it cannot save endpoint details because of a remote service failure" in new Setup {
-      when(connector.registerEndpoints(any[Map[String,Option[String]]])(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+      when(connector.registerEndpoints(any[Map[String,Option[String]]])(any[ExecutionContext])).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
 
       val result = await(service.registerEndpoints(expectedMap))
 
@@ -159,7 +158,7 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
 
     "return none when the push registration service fails" in new Setup {
-      when(connector.removeStaleRegistrations()(any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+      when(connector.removeStaleRegistrations()(any[ExecutionContext])).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
 
       val result = await(service.removeStaleRegistrations)
 

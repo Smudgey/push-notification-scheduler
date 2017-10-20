@@ -17,16 +17,16 @@
 package uk.gov.hmrc.pushnotificationscheduler.services
 
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{any, anyInt}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, when}
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
-import uk.gov.hmrc.play.http.{HttpReads, Upstream5xxResponse}
+import org.scalatest.mockito.MockitoSugar
+import uk.gov.hmrc.http.{HttpReads, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.connectors.SnsClientConnectorApi
-import uk.gov.hmrc.pushnotificationscheduler.domain.DeliveryStatus.{Success, Disabled}
+import uk.gov.hmrc.pushnotificationscheduler.domain.DeliveryStatus.{Disabled, Success}
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows}
-import uk.gov.hmrc.pushnotificationscheduler.domain.{DeliveryStatus, Notification, NotificationStatus, RegistrationToken}
+import uk.gov.hmrc.pushnotificationscheduler.domain.{DeliveryStatus, Notification, RegistrationToken}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -47,13 +47,13 @@ class SnsClientServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures 
   }
 
   private trait Success extends Setup {
-    when(connector.exchangeTokens(any[Seq[RegistrationToken]])(any[HttpReads[Map[String,String]]](), any[ExecutionContext]())).thenReturn(Future.successful(expectedTokenToEndpointMap))
-    when(connector.sendNotifications(any[Seq[Notification]])(any[HttpReads[Map[String,DeliveryStatus]]](), any[ExecutionContext]())).thenReturn(Future.successful(expectedMessageIdToStatusMap))
+    when(connector.exchangeTokens(any[Seq[RegistrationToken]])(any[HttpReads[Map[String,String]]](), any[ExecutionContext])).thenReturn(Future.successful(expectedTokenToEndpointMap))
+    when(connector.sendNotifications(any[Seq[Notification]])(any[HttpReads[Map[String,DeliveryStatus]]](), any[ExecutionContext])).thenReturn(Future.successful(expectedMessageIdToStatusMap))
   }
 
   private trait Failed extends Setup {
-    when(connector.exchangeTokens(any[Seq[RegistrationToken]])(any[HttpReads[Map[String,String]]](), any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
-    when(connector.sendNotifications(any[Seq[Notification]])(any[HttpReads[Map[String,DeliveryStatus]]](), any[ExecutionContext]())).thenReturn(Future.failed(Upstream5xxResponse("Crash!", 500, 500)))
+    when(connector.exchangeTokens(any[Seq[RegistrationToken]])(any[HttpReads[Map[String,String]]](), any[ExecutionContext])).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
+    when(connector.sendNotifications(any[Seq[Notification]])(any[HttpReads[Map[String,DeliveryStatus]]](), any[ExecutionContext])).thenReturn(Future.failed(Upstream5xxResponse("Crash!", 500, 500)))
   }
 
   "SnsClientService exchangeTokens" should {
@@ -62,7 +62,7 @@ class SnsClientServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures 
       val result = await(service.exchangeTokens(expectedTokens))
 
       val captor: ArgumentCaptor[Seq[RegistrationToken]] = ArgumentCaptor.forClass(classOf[Seq[RegistrationToken]])
-      verify(connector).exchangeTokens(captor.capture())(any[HttpReads[Map[String,String]]](), any[ExecutionContext]())
+      verify(connector).exchangeTokens(captor.capture())(any[HttpReads[Map[String,String]]](), any[ExecutionContext])
 
       captor.getValue shouldBe expectedTokens
       result shouldBe expectedTokenToEndpointMap
@@ -82,7 +82,7 @@ class SnsClientServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures 
       val result = await(service.sendNotifications(expectedNotifications))
 
       val captor: ArgumentCaptor[Seq[Notification]] = ArgumentCaptor.forClass(classOf[Seq[Notification]])
-      verify(connector).sendNotifications(captor.capture())(any[HttpReads[Map[String,DeliveryStatus]]](), any[ExecutionContext]())
+      verify(connector).sendNotifications(captor.capture())(any[HttpReads[Map[String,DeliveryStatus]]](), any[ExecutionContext])
 
       captor.getValue shouldBe expectedNotifications
       result shouldBe expectedMessageIdToStatusMap

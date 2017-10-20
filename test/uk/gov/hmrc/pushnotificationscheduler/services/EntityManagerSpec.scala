@@ -20,9 +20,9 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, verifyZeroInteractions, when}
 import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import play.api.Logger
-import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.http.{HttpException, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.connectors.{Error, GenericConnector, Response, Success}
 
@@ -61,18 +61,18 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
   }
 
   private trait NotFound extends Setup {
-    when(mockConnector.getThings()(any[ExecutionContext]())).thenReturn(failed(new HttpException("nothing found", 404)))
+    when(mockConnector.getThings()(any[ExecutionContext])).thenReturn(failed(new HttpException("nothing found", 404)))
     when(mockConnector.updateThings(any[Seq[String]])(any[ExecutionContext]())).thenReturn(successful(Error(404)))
   }
 
   private trait Unavailable extends Setup {
-    when(mockConnector.getThings()(any[ExecutionContext]())).thenReturn(failed(new HttpException("unable to acquire lock", 503)))
+    when(mockConnector.getThings()(any[ExecutionContext])).thenReturn(failed(new HttpException("unable to acquire lock", 503)))
   }
 
   private trait Failed extends Setup {
-    when(mockConnector.getThings()(any[ExecutionContext]())).thenReturn(failed(Upstream5xxResponse("service failed", 500, 500)))
-    when(mockConnector.updateThings(any[Seq[String]])(any[ExecutionContext]())).thenReturn(failed(Upstream5xxResponse("service failed", 500, 500)))
-    when(mockConnector.deleteThings()(any[ExecutionContext]())).thenReturn(failed(Upstream5xxResponse("service failed", 500, 500)))
+    when(mockConnector.getThings()(any[ExecutionContext])).thenReturn(failed(Upstream5xxResponse("service failed", 500, 500)))
+    when(mockConnector.updateThings(any[Seq[String]])(any[ExecutionContext])).thenReturn(failed(Upstream5xxResponse("service failed", 500, 500)))
+    when(mockConnector.deleteThings()(any[ExecutionContext])).thenReturn(failed(Upstream5xxResponse("service failed", 500, 500)))
   }
 
   "fetch" should {
@@ -106,7 +106,7 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
     "log an error given a 500 response from the downstream service" in new Failed {
       await(service.fetch[String](mockConnector.getThings()))
 
-      verify(mockLogger).error(stringCaptor.capture(), ArgumentMatchers.any[Throwable]())
+      verify(mockLogger).error(stringCaptor.capture(), ArgumentMatchers.any[Throwable])
 
       val message: String = stringCaptor.getValue
 
@@ -134,7 +134,7 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
     "log an error given a downstream service failure" in new Failed {
       await(service.update(mockConnector.updateThings(someData)))
 
-      verify(mockLogger).error(stringCaptor.capture(), ArgumentMatchers.any[Throwable]())
+      verify(mockLogger).error(stringCaptor.capture(), ArgumentMatchers.any[Throwable])
 
       val message: String = stringCaptor.getValue
 
@@ -153,7 +153,7 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
     "log an error when the delete has failed" in new Failed {
       await(service.delete[Int](mockConnector.deleteThings()))
 
-      verify(mockLogger).error(stringCaptor.capture(), ArgumentMatchers.any[Throwable]())
+      verify(mockLogger).error(stringCaptor.capture(), ArgumentMatchers.any[Throwable])
 
       val message: String = stringCaptor.getValue
 

@@ -23,7 +23,7 @@ import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows, iOS}
@@ -59,7 +59,7 @@ class RegistrationTokenDispatcherSpec extends UnitSpec with ScalaFutures with Mo
       when(mockPushRegistration.registerEndpoints(ArgumentMatchers.any[Map[String, Option[String]]]())).thenAnswer(new Answer[Future[_]] {
         override def answer(invocationOnMock: InvocationOnMock): Future[_] = Future.successful(Unit)
       })
-      when(mockSnsClient.exchangeTokens(ArgumentMatchers.any[Seq[RegistrationToken]]())).thenReturn(successful(endpoints))
+      when(mockSnsClient.exchangeTokens(ArgumentMatchers.any[Seq[RegistrationToken]])).thenReturn(successful(endpoints))
 
       await(dispatcher.exchangeRegistrationTokensForEndpoints())
 
@@ -80,11 +80,11 @@ class RegistrationTokenDispatcherSpec extends UnitSpec with ScalaFutures with Mo
 
       when(mockPushRegistration.getUnregisteredTokens).thenReturn(successful(Seq.empty))
       when(mockPushRegistration.recoverFailedRegistrations).thenReturn(successful(Seq.empty))
-      when(mockSnsClient.exchangeTokens(ArgumentMatchers.any[Seq[RegistrationToken]]())).thenReturn(failed(new Exception("should not be called")))
+      when(mockSnsClient.exchangeTokens(ArgumentMatchers.any[Seq[RegistrationToken]])).thenReturn(failed(new Exception("should not be called")))
 
       await(dispatcher.exchangeRegistrationTokensForEndpoints())
 
-      Mockito.verify(mockSnsClient, times(0)).exchangeTokens(ArgumentMatchers.any[Seq[RegistrationToken]]())
+      Mockito.verify(mockSnsClient, times(0)).exchangeTokens(ArgumentMatchers.any[Seq[RegistrationToken]])
     }
   }
 }
