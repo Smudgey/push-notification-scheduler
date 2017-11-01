@@ -8,7 +8,7 @@ object AppDependencies {
     ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % "6.11.0",
     "uk.gov.hmrc" %% "domain" % "5.0.0",
-    "uk.gov.hmrc" %% "reactive-circuit-breaker" % "3.1.0",
+    "uk.gov.hmrc" %% "reactive-circuit-breaker" % "3.2.0",
     "uk.gov.hmrc" %% "play-scheduling" % "4.1.0"
   )
 
