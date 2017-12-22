@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.services
 
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{verify, verifyZeroInteractions, when}
-import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mockito.MockitoSugar
 import play.api.Logger
@@ -106,7 +106,7 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
     "log an error given a 500 response from the downstream service" in new Failed {
       await(service.fetch[String](mockConnector.getThings()))
 
-      verify(mockLogger).error(stringCaptor.capture(), ArgumentMatchers.any[Throwable])
+      verify(mockLogger).error(stringCaptor.capture(), any[Throwable])
 
       val message: String = stringCaptor.getValue
 
@@ -122,7 +122,9 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
     }
 
     "log an error when an update is not successful" in new NotFound {
-      await(service.update(mockConnector.updateThings(someData)))
+      intercept[HttpException] {
+        await(service.update(mockConnector.updateThings(someData)))
+      }.responseCode shouldBe 404
 
       verify(mockLogger).error(stringCaptor.capture())
 
@@ -132,9 +134,11 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
     }
 
     "log an error given a downstream service failure" in new Failed {
-      await(service.update(mockConnector.updateThings(someData)))
+      intercept[Upstream5xxResponse] {
+        await(service.update(mockConnector.updateThings(someData)))
+      }.reportAs shouldBe 500
 
-      verify(mockLogger).error(stringCaptor.capture(), ArgumentMatchers.any[Throwable])
+      verify(mockLogger).error(stringCaptor.capture(), any[Throwable])
 
       val message: String = stringCaptor.getValue
 
@@ -153,7 +157,7 @@ class EntityManagerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
     "log an error when the delete has failed" in new Failed {
       await(service.delete[Int](mockConnector.deleteThings()))
 
-      verify(mockLogger).error(stringCaptor.capture(), ArgumentMatchers.any[Throwable])
+      verify(mockLogger).error(stringCaptor.capture(), any[Throwable])
 
       val message: String = stringCaptor.getValue
 

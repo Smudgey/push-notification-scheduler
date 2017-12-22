@@ -32,7 +32,6 @@ import uk.gov.hmrc.pushnotificationscheduler.support.MockAnswer
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Failure
 
 class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures with MockAnswer {
 
@@ -152,7 +151,6 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
     }
   }
 
-  //TODO fix tests using result.onComplete
   "PushNotificationService updateNotifications" should {
     "return success when it has successfully updated notification statuses" in new Success {
 
@@ -162,31 +160,18 @@ class PushNotificationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
       verify(connector).updateNotifications(captor.capture())(any[ExecutionContext])
 
       captor.getValue shouldBe someStatuses
-
-      result.onComplete{
-        case Failure(_) => fail("should have succeeded")
-        case _ => // all good
-      }
     }
 
-    "return failure when it can when it cannot update notification statuses because of a problem with the data" in new BadRequest {
-
-      val result = await(service.updateNotifications(someStatuses))
-
-      result.onComplete{
-        case Failure(e) => e.getMessage should contain ("400")
-        case _ => fail("should not have succeeded")
-      }
+    "fail when it can when it cannot update notification statuses because of a problem with the data" in new BadRequest {
+      intercept[HttpException] {
+        await(service.updateNotifications(someStatuses))
+      }.responseCode shouldBe 400
     }
 
-    "return failure when it cannot notification statuses because of a remote service failure" in new Failed {
-
-      val result = await(service.updateNotifications(someStatuses))
-
-      result.onComplete{
-        case Failure(e) => e.getMessage should contain ("500")
-        case _ => fail("should not have succeeded")
-      }
+    "fail when it cannot notification statuses because of a remote service failure" in new Failed {
+      intercept[Upstream5xxResponse] {
+        await(service.updateNotifications(someStatuses))
+      }.reportAs shouldBe 500
     }
   }
 

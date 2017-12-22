@@ -28,9 +28,7 @@ import uk.gov.hmrc.pushnotificationscheduler.connectors.{Error, PushRegistration
 import uk.gov.hmrc.pushnotificationscheduler.domain.NativeOS.{Android, Windows}
 import uk.gov.hmrc.pushnotificationscheduler.domain.{DeletedRegistrations, RegistrationToken}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Failure
 
 class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaFutures {
 
@@ -118,33 +116,22 @@ class PushRegistrationServiceSpec extends UnitSpec with MockitoSugar with ScalaF
       verify(connector).registerEndpoints(captor.capture())(any[ExecutionContext])
 
       captor.getValue shouldBe expectedMap
-
-      result.onComplete{
-        case Failure(_) => fail("should have succeeded")
-        case _ => // all good
-      }
     }
 
     "return failure when it can when it cannot save endpoint details because of a problem with the remote service " in new Setup {
       when(connector.registerEndpoints(any[Map[String,Option[String]]])(any[ExecutionContext])).thenReturn(Future.successful(Error(400)))
 
-      val result = await(service.registerEndpoints(expectedMap))
-
-      result.onComplete{
-        case Failure(e) => e.getMessage should contain ("400")
-        case _ => fail("should not have succeeded")
-      }
+      intercept[HttpException] {
+        await(service.registerEndpoints(expectedMap))
+      }.responseCode shouldBe 400
     }
 
     "return failure when it cannot save endpoint details because of a remote service failure" in new Setup {
       when(connector.registerEndpoints(any[Map[String,Option[String]]])(any[ExecutionContext])).thenReturn(Future.failed(Upstream5xxResponse("Kaboom!", 500, 500)))
 
-      val result = await(service.registerEndpoints(expectedMap))
-
-      result.onComplete{
-        case Failure(e) => e.getMessage should contain ("500")
-        case _ => fail("should not have succeeded")
-      }
+      intercept[Upstream5xxResponse] {
+        await(service.registerEndpoints(expectedMap))
+      }.reportAs shouldBe 500
     }
   }
 
