@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,30 +16,33 @@
 
 package uk.gov.hmrc.pushnotificationscheduler
 
-import javax.inject.Singleton
+import javax.inject.{Inject, Named}
 
 import uk.gov.hmrc.http.hooks.HttpHooks
-import uk.gov.hmrc.http.{HttpDelete, HttpGet, HttpPost, HttpPut}
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.auth.microservice.connectors.AuthConnector
-import uk.gov.hmrc.play.config.{AppName, RunMode, ServicesConfig}
+import uk.gov.hmrc.play.audit.model.Audit
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.config.AppName
 import uk.gov.hmrc.play.http.ws._
-import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
 
 trait Hooks extends HttpHooks with HttpAuditing {
-  override val hooks = Seq(AuditingHook)
-  override lazy val auditConnector: AuditConnector = MicroserviceAuditConnector
+  val hooks = Seq(AuditingHook)
 }
 
-trait WSHttpTrait extends HttpGet with WSGet with HttpPut with WSPut with HttpPost with WSPost with HttpDelete with WSDelete with Hooks with AppName
-@Singleton
-class WSHttp extends WSHttpTrait
+trait WSHttp extends HttpClient with WSGet
+  with WSPut
+  with WSPost
+  with WSDelete
+  with WSPatch
+  with Hooks with AppName
 
-object MicroserviceAuditConnector extends AuditConnector with RunMode {
-  override lazy val auditingConfig = LoadAuditingConfig(s"auditing")
-}
+class WSHttpImpl @Inject()(@Named("appName") val appName: String, val auditConnector: AuditConnector) extends HttpClient with WSGet
+  with WSPut
+  with WSPost
+  with WSDelete
+  with WSPatch
+  with Hooks
 
-object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with WSHttpTrait {
-  override val authBaseUrl = baseUrl("auth")
-}
+class MicroserviceAudit @Inject()(@Named("appName") val applicationName: String,
+                                  val auditConnector: AuditConnector) extends Audit(applicationName, auditConnector)

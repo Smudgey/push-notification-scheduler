@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,12 @@ import javax.inject.{Inject, Named, Singleton}
 
 import com.google.inject.ImplementedBy
 import uk.gov.hmrc.http.{CoreDelete, CoreGet, CorePost}
-import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.pushnotificationscheduler.domain.{DeletedRegistrations, RegistrationToken}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[PushRegistrationConnector])
-trait PushRegistrationConnectorApi extends GenericConnector with ServicesConfig {
+trait PushRegistrationConnectorApi extends GenericConnector {
 
   override val externalServiceName: String = "push-registration"
 
@@ -49,4 +48,4 @@ trait PushRegistrationConnectorApi extends GenericConnector with ServicesConfig 
 }
 
 @Singleton
-class PushRegistrationConnector @Inject()(@Named("pushRegistrationUrl") val serviceUrl: String, val http: CoreGet with CorePost with CoreDelete) extends PushRegistrationConnectorApi with ServicesConfig
+class PushRegistrationConnector @Inject()(@Named("pushRegistrationUrl") val serviceUrl: String, val http: CoreGet with CorePost with CoreDelete) extends PushRegistrationConnectorApi

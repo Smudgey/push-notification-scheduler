@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,27 +16,32 @@
 
 package uk.gov.hmrc.pushnotificationscheduler.config
 
+import javax.inject.Provider
+
 import com.google.inject.AbstractModule
+import com.google.inject.name.Names
 import com.google.inject.name.Names.named
 import play.api.Mode.Mode
 import play.api.{Configuration, Environment, Logger}
-import uk.gov.hmrc.http.{CoreDelete, CoreGet, CorePost}
-import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.pushnotificationscheduler.WSHttp
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.config.{AppName, ServicesConfig}
+import uk.gov.hmrc.pushnotificationscheduler.WSHttpImpl
 
 import scala.concurrent.duration.FiniteDuration
 
 
 class GuiceModule(environment: Environment, configuration: Configuration) extends AbstractModule with ScheduledConfig with ServicesConfig {
 
-  override protected lazy val mode: Mode = environment.mode
-  override protected lazy val runModeConfiguration: Configuration = configuration
+  override protected def mode: Mode = environment.mode
+  override protected def runModeConfiguration: Configuration = configuration
 
   override def configure(): Unit = {
 
-    bind(classOf[CoreGet]).to(classOf[WSHttp])
-    bind(classOf[CorePost]).to(classOf[WSHttp])
-    bind(classOf[CoreDelete]).to(classOf[WSHttp])
+    bind(classOf[HttpGet]).to(classOf[WSHttpImpl])
+    bind(classOf[HttpPost]).to(classOf[WSHttpImpl])
+    bind(classOf[HttpDelete]).to(classOf[WSHttpImpl])
+    bind(classOf[HttpClient]).to(classOf[WSHttpImpl])
 
     bind(classOf[Logger]).toInstance(Logger("push-notification-scheduler"))
 
@@ -59,5 +64,11 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
 
     bind(classOf[FiniteDuration]).annotatedWith(named("removeStaleRegistrationsDelaySeconds")).toInstance(durationFromConfig(configuration, "removeStaleRegistrationsJobApi", "initialDelay" ))
     bind(classOf[FiniteDuration]).annotatedWith(named("removeStaleRegistrationsIntervalSeconds")).toInstance(durationFromConfig(configuration, "removeStaleRegistrationsJobApi", "interval" ))
+
+    bind(classOf[String]).annotatedWith(Names.named("appName")).toProvider(AppNameProvider)
+  }
+
+  private object AppNameProvider extends Provider[String] {
+    def get(): String = AppName(configuration).appName
   }
 }
